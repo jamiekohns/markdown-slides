@@ -1,0 +1,1 @@
+{!! $toHtml(trim((string) $slot)) !!}
