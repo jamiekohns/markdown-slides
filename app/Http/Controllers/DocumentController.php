@@ -4,14 +4,15 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class DocumentController extends Controller
 {
     public function index(Request $request): View
     {
-        $documents = $request->user()->documents()->latest()->get();
-        $deletedDocuments = $request->user()->documents()->onlyTrashed()->latest('deleted_at')->get();
+        $documents = $request->user()->documents()->with('theme')->latest()->get();
+        $deletedDocuments = $request->user()->documents()->with('theme')->onlyTrashed()->latest('deleted_at')->get();
 
         return view('documents.index', [
             'documents' => $documents,
@@ -19,9 +20,16 @@ class DocumentController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('documents.create');
+        return view('documents.create', [
+            'themes' => $request->user()->themes()->latest('name')->get(),
+            'images' => collect(),
+            'canUploadImages' => false,
+            'uploadImageRoute' => null,
+            'deleteImageRouteName' => null,
+            'imageOwnerId' => null,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -30,25 +38,38 @@ class DocumentController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'content' => ['required', 'string'],
+            'theme_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('themes', 'id')->where(fn ($query) => $query->where('user_id', $request->user()->id)),
+            ],
         ]);
 
         $document = $request->user()->documents()->create($attributes);
 
-        return redirect()->route('documents.show', $document)->with('status', 'Document created successfully.');
+        return redirect()->route('documents.show', $document)->with('status', 'Presentation created successfully.');
     }
 
     public function show(Request $request, int $document): View
     {
-        $ownedDocument = $request->user()->documents()->findOrFail($document);
+        $ownedDocument = $request->user()->documents()->with('theme')->findOrFail($document);
 
         return view('documents.show', ['document' => $ownedDocument]);
     }
 
     public function edit(Request $request, int $document): View
     {
-        $ownedDocument = $request->user()->documents()->findOrFail($document);
+        $ownedDocument = $request->user()->documents()->with(['theme', 'images'])->findOrFail($document);
 
-        return view('documents.edit', ['document' => $ownedDocument]);
+        return view('documents.edit', [
+            'document' => $ownedDocument,
+            'themes' => $request->user()->themes()->latest('name')->get(),
+            'images' => $ownedDocument->images,
+            'canUploadImages' => true,
+            'uploadImageRoute' => route('documents.images.store', $ownedDocument),
+            'deleteImageRouteName' => 'documents.images.destroy',
+            'imageOwnerId' => $ownedDocument->id,
+        ]);
     }
 
     public function update(Request $request, int $document): RedirectResponse
@@ -59,11 +80,16 @@ class DocumentController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'content' => ['required', 'string'],
+            'theme_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('themes', 'id')->where(fn ($query) => $query->where('user_id', $request->user()->id)),
+            ],
         ]);
 
         $ownedDocument->update($attributes);
 
-        return redirect()->route('documents.show', $ownedDocument)->with('status', 'Document updated successfully.');
+        return redirect()->route('documents.show', $ownedDocument)->with('status', 'Presentation updated successfully.');
     }
 
     public function destroy(Request $request, int $document): RedirectResponse
@@ -72,7 +98,7 @@ class DocumentController extends Controller
 
         $ownedDocument->delete();
 
-        return redirect()->route('documents.index')->with('status', 'Document moved to trash.');
+        return redirect()->route('documents.index')->with('status', 'Presentation moved to trash.');
     }
 
     public function restore(Request $request, int $document): RedirectResponse

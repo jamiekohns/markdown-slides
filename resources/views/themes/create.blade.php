@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>New Presentation</title>
+    <title>New Theme</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-body-tertiary">
@@ -12,17 +12,17 @@
             <div class="col-12 col-xl-9">
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                     <div>
-                        <h1 class="h2 mb-1">Create Presentation</h1>
-                        <p class="text-body-secondary mb-0">Start writing your deck in markdown.</p>
+                        <h1 class="h2 mb-1">Create Theme</h1>
+                        <p class="text-body-secondary mb-0">Save reusable CSS for your presentations.</p>
                     </div>
-                    <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">Back to list</a>
+                    <a href="{{ route('themes.index') }}" class="btn btn-outline-secondary">Back to list</a>
                 </div>
 
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-4 p-md-5">
-                        <form method="POST" action="{{ route('documents.store') }}">
+                        <form method="POST" action="{{ route('themes.store') }}">
                             @csrf
-                            @include('documents._form', ['submitLabel' => 'Create presentation'])
+                            @include('themes._form', ['submitLabel' => 'Create theme'])
                         </form>
                     </div>
                 </div>

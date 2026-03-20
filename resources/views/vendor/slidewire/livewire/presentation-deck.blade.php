@@ -172,6 +172,12 @@
         }
     </style>
 
+    @if(isset($this->deckMeta['_slidewire_custom_css']) && is_string($this->deckMeta['_slidewire_custom_css']) && trim($this->deckMeta['_slidewire_custom_css']) !== '')
+        <style data-slidewire-document-theme>
+            {!! $this->deckMeta['_slidewire_custom_css'] !!}
+        </style>
+    @endif
+
     @script
         <script>
             window.slidewireDeck = function ($wire, index, fragment, count, slideThemes, configuredThemes, defaultTheme, slideTransitionDurations, slideAutoSlides, pauseOnInteraction, gridShape, slideCoords, themeTypography, canInteract) {

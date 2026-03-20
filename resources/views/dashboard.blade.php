@@ -26,7 +26,12 @@
                             <div class="d-flex align-items-center gap-2">
                                 <a href="{{ route('documents.index') }}" class="btn btn-outline-primary">
                                     <i class="bi bi-journal-richtext me-1"></i>
-                                    Documents
+                                    Presentations
+                                </a>
+
+                                <a href="{{ route('themes.index') }}" class="btn btn-outline-primary">
+                                    <i class="bi bi-palette me-1"></i>
+                                    Themes
                                 </a>
 
                                 <button type="button" class="btn btn-outline-secondary" id="theme-toggle">

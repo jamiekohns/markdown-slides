@@ -2,14 +2,14 @@
 
 namespace Database\Factories;
 
-use App\Models\Document;
+use App\Models\Theme;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<Document>
+ * @extends Factory<Theme>
  */
-class DocumentFactory extends Factory
+class ThemeFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -20,18 +20,16 @@ class DocumentFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'theme_id' => null,
-            'title' => fake()->sentence(4),
+            'name' => fake()->unique()->words(2, true),
             'description' => fake()->optional()->sentence(10),
-            'content' => implode("\n", [
-                '# '.fake()->sentence(3),
+            'css' => implode("\n", [
+                '.slidewire-content h1 {',
+                '  letter-spacing: 0.02em;',
+                '}',
                 '',
-                fake()->paragraph(2),
-                '',
-                '## Notes',
-                '',
-                '- '.fake()->sentence(),
-                '- '.fake()->sentence(),
+                '.slidewire-content a {',
+                '  text-decoration: underline;',
+                '}',
             ]),
         ];
     }
