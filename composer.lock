@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3afe7b4a40d08f4edf5c2c81a1fca9df",
+    "content-hash": "8ce47beec115f4fec09ed4751de24906",
     "packages": [
         {
             "name": "brick/math",
@@ -6034,10 +6034,16 @@
         {
             "name": "wendelladriel/slidewire",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/jamiekohns/slidewire-x.git",
+                "reference": "5c86ddf59eada8d63bfd403cb8d935bff0a514a6"
+            },
             "dist": {
-                "type": "path",
-                "url": "../slidewire-x",
-                "reference": "d59df28284f9c3f81decb3f66074bb7a6457e24e"
+                "type": "zip",
+                "url": "https://api.github.com/repos/jamiekohns/slidewire-x/zipball/5c86ddf59eada8d63bfd403cb8d935bff0a514a6",
+                "reference": "5c86ddf59eada8d63bfd403cb8d935bff0a514a6",
+                "shasum": ""
             },
             "require": {
                 "illuminate/console": "^12.0|^13.0",
@@ -6058,6 +6064,7 @@
                 "pestphp/pest-plugin-type-coverage": "^4.0",
                 "rector/rector": "^2.3"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -6121,10 +6128,20 @@
                 "presentations",
                 "slides"
             ],
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "source": "https://github.com/jamiekohns/slidewire-x/tree/main"
+            },
+            "funding": [
+                {
+                    "type": "github",
+                    "url": "https://github.com/WendellAdriel"
+                },
+                {
+                    "type": "custom",
+                    "url": "https://www.paypal.me/wendelladriel"
+                }
+            ],
+            "time": "2026-03-23T19:38:37+00:00"
         }
     ],
     "packages-dev": [
