@@ -3,27 +3,27 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Edit Presentation</title>
+    <title>Edit Theme</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-body-tertiary">
     <main class="container py-5">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
             <div>
-                <h1 class="h2 mb-1">Edit Presentation</h1>
-                <p class="text-body-secondary mb-0">Update title, summary, markdown body, and theme.</p>
+                <h1 class="h2 mb-1">Edit Theme</h1>
+                <p class="text-body-secondary mb-0">Update CSS and metadata.</p>
             </div>
-            <a href="{{ route('documents.show', $document) }}" class="btn btn-outline-secondary">Back to presentation</a>
+            <a href="{{ route('themes.show', $theme) }}" class="btn btn-outline-secondary">Back to theme</a>
         </div>
 
         <div class="row g-4 align-items-start">
             <div class="col-12 col-xl-8">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-4 p-md-5">
-                        <form method="POST" action="{{ route('documents.update', $document) }}">
+                        <form method="POST" action="{{ route('themes.update', $theme) }}">
                             @csrf
                             @method('PUT')
-                            @include('documents._form', ['submitLabel' => 'Save changes'])
+                            @include('themes._form', ['submitLabel' => 'Save changes'])
                         </form>
                     </div>
                 </div>
@@ -31,15 +31,15 @@
 
             <div class="col-12 col-xl-4">
                 <x-image-library
-                    title="Presentation Images"
-                    hint="Upload deck-specific assets. Click &ldquo;Insert at cursor&rdquo; to place a Markdown image snippet at the editor cursor."
+                    title="Theme Images"
+                    hint="Upload theme assets. Click &ldquo;Insert at cursor&rdquo; to place a url() snippet at the CSS editor cursor."
                     :images="$images"
                     :can-upload="$canUploadImages"
                     :upload-route="$uploadImageRoute"
                     :delete-route-name="$deleteImageRouteName"
                     :owner-id="$imageOwnerId"
-                    monaco-target-id="content"
-                    monaco-language="markdown"
+                    monaco-target-id="css"
+                    monaco-language="css"
                 />
             </div>
         </div>

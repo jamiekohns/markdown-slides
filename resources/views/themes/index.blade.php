@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Presentations</title>
+    <title>Themes</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-body-tertiary">
@@ -13,10 +13,10 @@
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                     <div>
                         <h1 class="h2 mb-1">
-                            <i class="bi bi-journal-richtext text-primary me-2"></i>
-                            My Presentations
+                            <i class="bi bi-palette text-primary me-2"></i>
+                            My Themes
                         </h1>
-                        <p class="text-body-secondary mb-0">Manage your markdown presentation decks.</p>
+                        <p class="text-body-secondary mb-0">Manage reusable CSS themes for your presentations.</p>
                     </div>
 
                     <div class="d-flex gap-2">
@@ -24,13 +24,13 @@
                             <i class="bi bi-speedometer2 me-1"></i>
                             Dashboard
                         </a>
-                        <a href="{{ route('themes.index') }}" class="btn btn-outline-secondary">
-                            <i class="bi bi-palette me-1"></i>
-                            Themes
+                        <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-journal-richtext me-1"></i>
+                            Presentations
                         </a>
-                        <a href="{{ route('documents.create') }}" class="btn btn-primary">
+                        <a href="{{ route('themes.create') }}" class="btn btn-primary">
                             <i class="bi bi-plus-circle me-1"></i>
-                            New Presentation
+                            New Theme
                         </a>
                     </div>
                 </div>
@@ -44,34 +44,31 @@
                         <h2 class="h5 mb-0">Active</h2>
                     </div>
                     <div class="card-body p-0">
-                        @if ($documents->isEmpty())
-                            <p class="text-body-secondary m-0 p-4">No presentations yet. Create your first markdown deck.</p>
+                        @if ($themes->isEmpty())
+                            <p class="text-body-secondary m-0 p-4">No themes yet. Create your first CSS theme.</p>
                         @else
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle mb-0">
                                     <thead>
                                         <tr>
-                                            <th>Title</th>
-                                            <th>Theme</th>
+                                            <th>Name</th>
                                             <th>Description</th>
                                             <th>Updated</th>
                                             <th class="text-end">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @foreach ($documents as $document)
+                                        @foreach ($themes as $theme)
                                             <tr>
                                                 <td>
-                                                    <a class="fw-semibold text-decoration-none" href="{{ route('documents.show', $document) }}">{{ $document->title }}</a>
+                                                    <a class="fw-semibold text-decoration-none" href="{{ route('themes.show', $theme) }}">{{ $theme->name }}</a>
                                                 </td>
-                                                <td class="text-body-secondary">{{ $document->theme?->name ?? 'Default' }}</td>
-                                                <td class="text-body-secondary">{{ $document->description ?: 'No description' }}</td>
-                                                <td>{{ $document->updated_at->diffForHumans() }}</td>
+                                                <td class="text-body-secondary">{{ $theme->description ?: 'No description' }}</td>
+                                                <td>{{ $theme->updated_at->diffForHumans() }}</td>
                                                 <td class="text-end">
                                                     <div class="d-inline-flex gap-2">
-                                                        <a class="btn btn-sm btn-outline-success" href="{{ $document->presentationUrl() }}" target="_blank" rel="noopener noreferrer">Present</a>
-                                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('documents.edit', $document) }}">Edit</a>
-                                                        <form method="POST" action="{{ route('documents.destroy', $document) }}" onsubmit="return confirm('Move this presentation to trash?');">
+                                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('themes.edit', $theme) }}">Edit</a>
+                                                        <form method="POST" action="{{ route('themes.destroy', $theme) }}" onsubmit="return confirm('Move this theme to trash?');">
                                                             @csrf
                                                             @method('DELETE')
                                                             <button class="btn btn-sm btn-outline-danger" type="submit">Trash</button>
@@ -92,25 +89,25 @@
                         <h2 class="h5 mb-0">Trash</h2>
                     </div>
                     <div class="card-body p-0">
-                        @if ($deletedDocuments->isEmpty())
+                        @if ($deletedThemes->isEmpty())
                             <p class="text-body-secondary m-0 p-4">Trash is empty.</p>
                         @else
                             <div class="table-responsive">
                                 <table class="table align-middle mb-0">
                                     <thead>
                                         <tr>
-                                            <th>Title</th>
+                                            <th>Name</th>
                                             <th>Deleted</th>
                                             <th class="text-end">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @foreach ($deletedDocuments as $document)
+                                        @foreach ($deletedThemes as $theme)
                                             <tr>
-                                                <td>{{ $document->title }}</td>
-                                                <td>{{ $document->deleted_at?->diffForHumans() }}</td>
+                                                <td>{{ $theme->name }}</td>
+                                                <td>{{ $theme->deleted_at?->diffForHumans() }}</td>
                                                 <td class="text-end">
-                                                    <form method="POST" action="{{ route('documents.restore', $document->id) }}">
+                                                    <form method="POST" action="{{ route('themes.restore', $theme->id) }}">
                                                         @csrf
                                                         @method('PATCH')
                                                         <button class="btn btn-sm btn-outline-success" type="submit">Restore</button>

@@ -2,16 +2,22 @@
     'id' => 'content',
     'name' => 'content',
     'value' => '',
-    'rows' => 18,
+    'height' => '420px',
 ])
 
 <textarea
     id="{{ $id }}"
     name="{{ $name }}"
-    rows="{{ $rows }}"
-    class="form-control @error($name) is-invalid @enderror"
-    data-markdown-editor
+    class="d-none"
 >{{ $value }}</textarea>
+
+<div
+    class="border rounded overflow-hidden @error($name) border-danger @enderror"
+    data-monaco-editor
+    data-monaco-target="{{ $id }}"
+    data-monaco-language="markdown"
+    style="min-height: {{ $height }}; height: {{ $height }};"
+></div>
 
 @error($name)
     <div class="invalid-feedback d-block">{{ $message }}</div>
