@@ -1,7 +1,6 @@
 @php
     $title = old('title', $document->title ?? '');
     $description = old('description', $document->description ?? '');
-    $content = old('content', $document->content ?? '');
     $themeId = old('theme_id', $document->theme_id ?? '');
 @endphp
 
@@ -55,17 +54,8 @@
     @enderror
 </div>
 
-<div class="mb-3">
-    <div class="d-flex align-items-center justify-content-between mb-2">
-        <label for="content" class="form-label mb-0">Markdown</label>
-        <small class="text-body-secondary">Markdown syntax highlighting enabled</small>
-    </div>
-
-    <x-markdown-editor id="content" name="content" :value="$content" height="520px" />
-</div>
-
 <div class="d-flex flex-wrap gap-2">
-    <button type="submit" class="btn btn-primary">
+    <button type="submit" class="btn btn-primary" data-document-metadata-save>
         <i class="bi bi-save me-1"></i>
         {{ $submitLabel }}
     </button>

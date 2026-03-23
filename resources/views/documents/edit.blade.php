@@ -11,20 +11,73 @@
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
             <div>
                 <h1 class="h2 mb-1">Edit Presentation</h1>
-                <p class="text-body-secondary mb-0">Update title, summary, markdown body, and theme.</p>
+                <p class="text-body-secondary mb-0">Edit document details and manage ordered slide content in one place.</p>
             </div>
-            <a href="{{ route('documents.show', $document) }}" class="btn btn-outline-secondary">Back to presentation</a>
+            <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">Back to presentations</a>
         </div>
+
+        @if (session('status'))
+            <div class="alert alert-success">{{ session('status') }}</div>
+        @endif
 
         <div class="row g-4 align-items-start">
             <div class="col-12 col-xl-8">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-4 p-md-5">
+                        <h2 class="h5 mb-3">Presentation Details</h2>
                         <form method="POST" action="{{ route('documents.update', $document) }}">
                             @csrf
                             @method('PUT')
-                            @include('documents._form', ['submitLabel' => 'Save changes'])
+                            @include('documents._form', ['submitLabel' => 'Save details'])
                         </form>
+                    </div>
+                </div>
+
+                <div
+                    class="card border-0 shadow-sm mt-4"
+                    data-slide-editor
+                    data-document-id="{{ $document->id }}"
+                    data-slides-index-url="{{ route('documents.slides.index', $document) }}"
+                    data-slides-store-url="{{ route('documents.slides.store', $document) }}"
+                    data-slides-update-url-template="{{ route('documents.slides.update', ['document' => $document->id, 'slide' => '__SLIDE_ID__']) }}"
+                    data-slides-delete-url-template="{{ route('documents.slides.destroy', ['document' => $document->id, 'slide' => '__SLIDE_ID__']) }}"
+                    data-slides-reorder-url="{{ route('documents.slides.reorder', $document) }}"
+                    data-slides-save-all-url="{{ route('documents.slides.save-all', $document) }}"
+                    data-csrf-token="{{ csrf_token() }}"
+                >
+                    <div class="card-header bg-transparent d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <div>
+                            <h2 class="h5 mb-0">Slides</h2>
+                            <small class="text-body-secondary">Drag to reorder. Changes autosave while you edit.</small>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-slide-save-all>Save all now</button>
+                            <button type="button" class="btn btn-sm btn-primary" data-slide-add>Add slide</button>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-12 col-lg-4">
+                                <ul class="list-group" data-slide-list></ul>
+                            </div>
+
+                            <div class="col-12 col-lg-8">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <strong data-slide-active-label>Slide</strong>
+                                    <small class="text-body-secondary" data-slide-save-status>Loading slides...</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div id="active-slide-editor" data-monaco-editor data-monaco-target="active-slide-textarea" data-monaco-language="markdown" style="height: 520px;"></div>
+                                    <textarea id="active-slide-textarea" class="d-none" aria-hidden="true"></textarea>
+                                </div>
+
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button type="button" class="btn btn-outline-danger" data-slide-delete>Delete slide</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -38,7 +91,7 @@
                     :upload-route="$uploadImageRoute"
                     :delete-route-name="$deleteImageRouteName"
                     :owner-id="$imageOwnerId"
-                    monaco-target-id="content"
+                    monaco-target-id="active-slide-editor"
                     monaco-language="markdown"
                 />
             </div>

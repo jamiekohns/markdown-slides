@@ -46,9 +46,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 	const monacoEditorElements = [...document.querySelectorAll('[data-monaco-editor]')];
 	const editorInstances = new Map();
+	const monacoChangeCallbacks = new Map();
+	let monacoModule = null;
 
 	if (monacoEditorElements.length > 0) {
-		const monaco = await import('monaco-editor');
+		monacoModule = await import('monaco-editor');
 
 		monacoEditorElements.forEach((element) => {
 			if (element.dataset.editorInitialized === 'true') {
@@ -65,9 +67,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 			element.dataset.editorInitialized = 'true';
 
 			const language = element.dataset.monacoLanguage || 'plaintext';
-			const model = monaco.editor.createModel(textarea.value || '', language);
+			const model = monacoModule.editor.createModel(textarea.value || '', language);
 
-			const editor = monaco.editor.create(element, {
+			const editor = monacoModule.editor.create(element, {
 				model,
 				automaticLayout: true,
 				minimap: { enabled: false },
@@ -80,9 +82,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 			});
 
 			editorInstances.set(targetId, editor);
+			if (element.id) {
+				editorInstances.set(element.id, editor);
+			}
 
 			const syncToTextarea = () => {
 				textarea.value = editor.getValue();
+				const callback = monacoChangeCallbacks.get(targetId) || monacoChangeCallbacks.get(element.id || '');
+				if (typeof callback === 'function') {
+					callback(editor.getValue());
+				}
 			};
 
 			editor.onDidChangeModelContent(syncToTextarea);
@@ -91,6 +100,428 @@ document.addEventListener('DOMContentLoaded', async () => {
 			const form = textarea.closest('form');
 			if (form) {
 				form.addEventListener('submit', syncToTextarea);
+			}
+		});
+	}
+
+	const slideEditorRoot = document.querySelector('[data-slide-editor]');
+
+	if (slideEditorRoot) {
+		const slidesList = slideEditorRoot.querySelector('[data-slide-list]');
+		const addButton = slideEditorRoot.querySelector('[data-slide-add]');
+		const deleteButton = slideEditorRoot.querySelector('[data-slide-delete]');
+		const saveAllButton = slideEditorRoot.querySelector('[data-slide-save-all]');
+		const statusEl = slideEditorRoot.querySelector('[data-slide-save-status]');
+		const activeLabel = slideEditorRoot.querySelector('[data-slide-active-label]');
+		const activeSlideEditor = editorInstances.get('active-slide-editor');
+		const csrf = slideEditorRoot.dataset.csrfToken;
+		const slidesIndexUrl = slideEditorRoot.dataset.slidesIndexUrl;
+		const slidesStoreUrl = slideEditorRoot.dataset.slidesStoreUrl;
+		const slidesReorderUrl = slideEditorRoot.dataset.slidesReorderUrl;
+		const slidesSaveAllUrl = slideEditorRoot.dataset.slidesSaveAllUrl;
+		const updateUrlTemplate = slideEditorRoot.dataset.slidesUpdateUrlTemplate;
+		const deleteUrlTemplate = slideEditorRoot.dataset.slidesDeleteUrlTemplate;
+
+		if (
+			activeSlideEditor
+			&& slidesList
+			&& addButton
+			&& deleteButton
+			&& saveAllButton
+			&& statusEl
+			&& activeLabel
+			&& csrf
+			&& slidesIndexUrl
+			&& slidesStoreUrl
+			&& slidesReorderUrl
+			&& slidesSaveAllUrl
+			&& updateUrlTemplate
+			&& deleteUrlTemplate
+		) {
+			const state = {
+				slides: [],
+				activeSlideId: null,
+				autosaveTimers: new Map(),
+				isProgrammaticEdit: false,
+			};
+
+			const setStatus = (message) => {
+				statusEl.textContent = message;
+			};
+
+			const findSlide = (slideId) => state.slides.find((slide) => slide.id === slideId);
+
+			const request = async (url, options = {}) => {
+				const response = await fetch(url, {
+					...options,
+					headers: {
+						'Accept': 'application/json',
+						'Content-Type': 'application/json',
+						'X-CSRF-TOKEN': csrf,
+						...(options.headers || {}),
+					},
+				});
+
+				const payload = await response.json().catch(() => ({}));
+
+				if (!response.ok) {
+					const error = new Error(payload.message || 'Request failed.');
+					error.payload = payload;
+					throw error;
+				}
+
+				return payload;
+			};
+
+			const renderSlides = () => {
+				slidesList.innerHTML = '';
+
+				state.slides.forEach((slide, index) => {
+					const item = document.createElement('li');
+					item.className = 'list-group-item d-flex align-items-center justify-content-between gap-2';
+					item.draggable = true;
+					item.dataset.slideId = String(slide.id);
+
+					const button = document.createElement('button');
+					button.type = 'button';
+					button.className = 'btn btn-sm text-start flex-grow-1';
+					button.dataset.slideSelect = String(slide.id);
+					button.textContent = `Slide ${index + 1}`;
+
+					if (slide.id === state.activeSlideId) {
+						button.classList.add('btn-primary');
+					} else {
+						button.classList.add('btn-outline-secondary');
+					}
+
+					const handle = document.createElement('span');
+					handle.className = 'text-body-secondary';
+					handle.textContent = '::';
+
+					item.appendChild(button);
+					item.appendChild(handle);
+					slidesList.appendChild(item);
+				});
+			};
+
+			const setActiveSlide = (slideId) => {
+				const slide = findSlide(slideId);
+
+				if (!slide) {
+					return;
+				}
+
+				state.activeSlideId = slide.id;
+				state.isProgrammaticEdit = true;
+				activeSlideEditor.setValue(slide.content || '');
+				state.isProgrammaticEdit = false;
+				activeLabel.textContent = `Slide ${slide.sort_order}`;
+				renderSlides();
+				setStatus('Saved');
+			};
+
+			const loadSlides = async () => {
+				setStatus('Loading slides...');
+
+				const payload = await request(slidesIndexUrl, {
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+				});
+
+				state.slides = (payload.slides || []).map((slide, index) => ({
+					...slide,
+					sort_order: index + 1,
+				}));
+
+				if (state.slides.length === 0) {
+					setStatus('No slides available.');
+					activeLabel.textContent = 'No slide selected';
+					activeSlideEditor.setValue('');
+					renderSlides();
+					return;
+				}
+
+				if (!findSlide(state.activeSlideId)) {
+					state.activeSlideId = state.slides[0].id;
+				}
+
+				setActiveSlide(state.activeSlideId);
+			};
+
+			const saveSlide = async (slideId) => {
+				const slide = findSlide(slideId);
+				if (!slide) {
+					return;
+				}
+
+				setStatus(`Saving slide ${slide.sort_order}...`);
+
+				try {
+					const payload = await request(updateUrlTemplate.replace('__SLIDE_ID__', String(slide.id)), {
+						method: 'PUT',
+						body: JSON.stringify({ content: slide.content }),
+					});
+
+					const saved = payload.slide;
+					slide.updated_at = saved.updated_at;
+					setStatus(`Saved slide ${slide.sort_order}`);
+				} catch {
+					setStatus(`Save failed on slide ${slide.sort_order}. Retrying on next change.`);
+				}
+			};
+
+			const queueAutosave = (slideId) => {
+				const existingTimer = state.autosaveTimers.get(slideId);
+				if (existingTimer) {
+					window.clearTimeout(existingTimer);
+				}
+
+				setStatus('Unsaved changes...');
+
+				const timerId = window.setTimeout(() => {
+					void saveSlide(slideId);
+					state.autosaveTimers.delete(slideId);
+				}, 700);
+
+				state.autosaveTimers.set(slideId, timerId);
+			};
+
+			monacoChangeCallbacks.set('active-slide-textarea', (newValue) => {
+				if (state.isProgrammaticEdit || state.activeSlideId === null) {
+					return;
+				}
+
+				const activeSlide = findSlide(state.activeSlideId);
+				if (!activeSlide) {
+					return;
+				}
+
+				activeSlide.content = newValue;
+				queueAutosave(activeSlide.id);
+			});
+
+			addButton.addEventListener('click', async () => {
+				setStatus('Adding slide...');
+
+				try {
+					const payload = await request(slidesStoreUrl, {
+						method: 'POST',
+						body: JSON.stringify({ content: '# New slide\n\nAdd content here.' }),
+					});
+
+					state.slides.push(payload.slide);
+					state.slides = state.slides.map((slide, index) => ({
+						...slide,
+						sort_order: index + 1,
+					}));
+					setActiveSlide(payload.slide.id);
+					setStatus('Slide added');
+				} catch {
+					setStatus('Could not add slide.');
+				}
+			});
+
+			deleteButton.addEventListener('click', async () => {
+				if (state.activeSlideId === null) {
+					return;
+				}
+
+				const activeSlide = findSlide(state.activeSlideId);
+				if (!activeSlide) {
+					return;
+				}
+
+				if (!window.confirm(`Delete slide ${activeSlide.sort_order}?`)) {
+					return;
+				}
+
+				try {
+					await request(deleteUrlTemplate.replace('__SLIDE_ID__', String(activeSlide.id)), {
+						method: 'DELETE',
+					});
+
+					state.slides = state.slides.filter((slide) => slide.id !== activeSlide.id);
+					state.slides = state.slides.map((slide, index) => ({
+						...slide,
+						sort_order: index + 1,
+					}));
+
+					if (state.slides.length > 0) {
+						setActiveSlide(state.slides[0].id);
+					} else {
+						state.activeSlideId = null;
+						activeSlideEditor.setValue('');
+						renderSlides();
+					}
+
+					setStatus('Slide deleted');
+				} catch (error) {
+					setStatus(error?.message || 'Could not delete slide.');
+				}
+			});
+
+			saveAllButton.addEventListener('click', async () => {
+				setStatus('Saving all slides...');
+
+				try {
+					await request(slidesSaveAllUrl, {
+						method: 'POST',
+						body: JSON.stringify({
+							slides: state.slides.map((slide) => ({
+								id: slide.id,
+								content: slide.content,
+							})),
+						}),
+					});
+
+					setStatus('All slides saved');
+				} catch {
+					setStatus('Save all failed');
+				}
+			});
+
+			slidesList.addEventListener('click', (event) => {
+				const btn = event.target.closest('[data-slide-select]');
+				if (!btn) {
+					return;
+				}
+
+				const slideId = Number(btn.dataset.slideSelect);
+				if (Number.isNaN(slideId)) {
+					return;
+				}
+
+				setActiveSlide(slideId);
+			});
+
+			let draggedSlideId = null;
+
+			slidesList.addEventListener('dragstart', (event) => {
+				const row = event.target.closest('[data-slide-id]');
+				if (!row) {
+					return;
+				}
+
+				draggedSlideId = Number(row.dataset.slideId);
+				event.dataTransfer.effectAllowed = 'move';
+			});
+
+			slidesList.addEventListener('dragover', (event) => {
+				event.preventDefault();
+				event.dataTransfer.dropEffect = 'move';
+			});
+
+			slidesList.addEventListener('drop', async (event) => {
+				event.preventDefault();
+
+				const row = event.target.closest('[data-slide-id]');
+				if (!row || draggedSlideId === null) {
+					return;
+				}
+
+				const targetSlideId = Number(row.dataset.slideId);
+				if (Number.isNaN(targetSlideId) || targetSlideId === draggedSlideId) {
+					return;
+				}
+
+				const draggedIndex = state.slides.findIndex((slide) => slide.id === draggedSlideId);
+				const targetIndex = state.slides.findIndex((slide) => slide.id === targetSlideId);
+
+				if (draggedIndex < 0 || targetIndex < 0) {
+					return;
+				}
+
+				const [moved] = state.slides.splice(draggedIndex, 1);
+				state.slides.splice(targetIndex, 0, moved);
+				state.slides = state.slides.map((slide, index) => ({
+					...slide,
+					sort_order: index + 1,
+				}));
+				renderSlides();
+
+				setStatus('Saving order...');
+
+				try {
+					await request(slidesReorderUrl, {
+						method: 'POST',
+						body: JSON.stringify({
+							slide_ids: state.slides.map((slide) => slide.id),
+						}),
+					});
+
+					if (state.activeSlideId !== null) {
+						const updatedActiveSlide = findSlide(state.activeSlideId);
+						if (updatedActiveSlide) {
+							activeLabel.textContent = `Slide ${updatedActiveSlide.sort_order}`;
+						}
+					}
+
+					setStatus('Order saved');
+				} catch {
+					setStatus('Order save failed');
+				}
+			});
+
+			await loadSlides();
+		}
+	}
+
+	const themeFormEl = document.querySelector('[data-theme-form]');
+
+	if (themeFormEl) {
+		const themeStatusEl = themeFormEl.querySelector('[data-theme-save-status]');
+		const themeCsrf = themeFormEl.dataset.csrfToken;
+		const themeUpdateUrl = themeFormEl.dataset.themeUpdateUrl;
+
+		const setThemeStatus = (message) => {
+			if (themeStatusEl) {
+				themeStatusEl.textContent = message;
+			}
+		};
+
+		themeFormEl.addEventListener('submit', async (event) => {
+			event.preventDefault();
+
+			const nameInput = themeFormEl.querySelector('#name');
+			const descriptionInput = themeFormEl.querySelector('#description');
+			const cssTextarea = themeFormEl.querySelector('#css');
+			const submitBtn = themeFormEl.querySelector('[type="submit"]');
+
+			if (submitBtn) {
+				submitBtn.disabled = true;
+			}
+
+			setThemeStatus('Saving...');
+
+			try {
+				const response = await fetch(themeUpdateUrl, {
+					method: 'PUT',
+					headers: {
+						'Accept': 'application/json',
+						'Content-Type': 'application/json',
+						'X-CSRF-TOKEN': themeCsrf,
+					},
+					body: JSON.stringify({
+						name: nameInput?.value ?? '',
+						description: descriptionInput?.value ?? '',
+						css: cssTextarea?.value ?? '',
+					}),
+				});
+
+				if (!response.ok) {
+					const payload = await response.json().catch(() => ({}));
+					setThemeStatus(payload.message || 'Save failed.');
+				} else {
+					setThemeStatus('Saved');
+				}
+			} catch {
+				setThemeStatus('Save failed.');
+			} finally {
+				if (submitBtn) {
+					submitBtn.disabled = false;
+				}
 			}
 		});
 	}

@@ -62,7 +62,7 @@
                                         @foreach ($documents as $document)
                                             <tr>
                                                 <td>
-                                                    <a class="fw-semibold text-decoration-none" href="{{ route('documents.show', $document) }}">{{ $document->title }}</a>
+                                                    {{ $document->title }}
                                                 </td>
                                                 <td class="text-body-secondary">{{ $document->theme?->name ?? 'Default' }}</td>
                                                 <td class="text-body-secondary">{{ $document->description ?: 'No description' }}</td>

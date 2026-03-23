@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -64,7 +65,7 @@ class ThemeController extends Controller
         ]);
     }
 
-    public function update(Request $request, int $theme): RedirectResponse
+    public function update(Request $request, int $theme): RedirectResponse|JsonResponse
     {
         $ownedTheme = $request->user()->themes()->findOrFail($theme);
 
@@ -75,6 +76,10 @@ class ThemeController extends Controller
         ]);
 
         $ownedTheme->update($attributes);
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Theme updated successfully.']);
+        }
 
         return redirect()->route('themes.show', $ownedTheme)->with('status', 'Theme updated successfully.');
     }

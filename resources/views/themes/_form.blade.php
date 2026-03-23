@@ -62,7 +62,7 @@
     @enderror
 </div>
 
-<div class="d-flex flex-wrap gap-2">
+<div class="d-flex flex-wrap align-items-center gap-2">
     <button type="submit" class="btn btn-primary">
         <i class="bi bi-save me-1"></i>
         {{ $submitLabel }}
@@ -71,4 +71,8 @@
     <a href="{{ route('themes.index') }}" class="btn btn-outline-secondary">
         Cancel
     </a>
+
+    @if ($showSaveStatus ?? false)
+        <small class="text-body-secondary ms-1" data-theme-save-status></small>
+    @endif
 </div>

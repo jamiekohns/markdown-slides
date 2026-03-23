@@ -61,7 +61,7 @@
                                         @foreach ($themes as $theme)
                                             <tr>
                                                 <td>
-                                                    <a class="fw-semibold text-decoration-none" href="{{ route('themes.show', $theme) }}">{{ $theme->name }}</a>
+                                                    {{ $theme->name }}
                                                 </td>
                                                 <td class="text-body-secondary">{{ $theme->description ?: 'No description' }}</td>
                                                 <td>{{ $theme->updated_at->diffForHumans() }}</td>
