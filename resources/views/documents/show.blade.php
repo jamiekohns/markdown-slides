@@ -39,11 +39,18 @@
 
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-transparent d-flex align-items-center justify-content-between">
-                        <h2 class="h5 mb-0">Presentation Markdown</h2>
-                        <small class="text-body-secondary">Syntax highlighted</small>
+                        <h2 class="h5 mb-0">Slides</h2>
+                        <small class="text-body-secondary">Ordered slide source</small>
                     </div>
                     <div class="card-body">
-                        <pre class="mb-0"><code class="language-markdown">{{ $document->content }}</code></pre>
+                        @forelse ($document->slides as $slide)
+                            <div class="mb-3">
+                                <h3 class="h6 text-body-secondary">Slide {{ $slide->sort_order }}</h3>
+                                <pre class="mb-0"><code class="language-markdown">{{ $slide->content }}</code></pre>
+                            </div>
+                        @empty
+                            <p class="text-body-secondary mb-0">No slides found for this presentation.</p>
+                        @endforelse
                     </div>
                 </div>
             </div>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\SlideWire;
 
 use App\Models\Document;
+use App\Support\DocumentSlideContent;
 use WendellAdriel\SlideWire\Contracts\DatabaseDocumentProvider as SlideWireDatabaseDocumentProvider;
 use WendellAdriel\SlideWire\DTOs\DatabaseDocument;
 
@@ -13,7 +14,7 @@ final class DatabaseDocumentProvider implements SlideWireDatabaseDocumentProvide
     public function findById(int $id): ?DatabaseDocument
     {
         /** @var Document|null $document */
-        $document = Document::query()->with('theme')->whereKey($id)->first();
+        $document = Document::query()->with(['theme', 'slides'])->whereKey($id)->first();
 
         if ($document === null) {
             return null;
@@ -22,10 +23,17 @@ final class DatabaseDocumentProvider implements SlideWireDatabaseDocumentProvide
         return new DatabaseDocument(
             id: (int) $document->getKey(),
             name: (string) $document->title,
-            content: (string) $document->content,
+            content: $this->buildDocumentContent($document),
             ownerId: (int) $document->user_id,
             customCss: $this->sanitizeCss($document->theme?->css),
         );
+    }
+
+    private function buildDocumentContent(Document $document): string
+    {
+        $slideBodies = $document->slides->pluck('content')->all();
+
+        return DocumentSlideContent::buildDeckMarkup($slideBodies);
     }
 
     private function sanitizeCss(?string $css): ?string

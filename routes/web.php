@@ -3,6 +3,7 @@
 use App\SlideWire\DatabaseDocumentProvider;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentImageController;
+use App\Http\Controllers\DocumentSlideController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\ThemeImageController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -33,6 +34,12 @@ Route::middleware('auth')->group(function () {
     Route::patch('/documents/{document}/restore', [DocumentController::class, 'restore'])->name('documents.restore');
     Route::post('/documents/{document}/images', [DocumentImageController::class, 'store'])->name('documents.images.store');
     Route::delete('/documents/{document}/images/{image}', [DocumentImageController::class, 'destroy'])->name('documents.images.destroy');
+    Route::get('/documents/{document}/slides', [DocumentSlideController::class, 'index'])->name('documents.slides.index');
+    Route::post('/documents/{document}/slides', [DocumentSlideController::class, 'store'])->name('documents.slides.store');
+    Route::put('/documents/{document}/slides/{slide}', [DocumentSlideController::class, 'update'])->name('documents.slides.update');
+    Route::delete('/documents/{document}/slides/{slide}', [DocumentSlideController::class, 'destroy'])->name('documents.slides.destroy');
+    Route::post('/documents/{document}/slides/reorder', [DocumentSlideController::class, 'reorder'])->name('documents.slides.reorder');
+    Route::post('/documents/{document}/slides/save-all', [DocumentSlideController::class, 'saveAll'])->name('documents.slides.save-all');
 
     Route::resource('themes', ThemeController::class);
     Route::patch('/themes/{theme}/restore', [ThemeController::class, 'restore'])->name('themes.restore');

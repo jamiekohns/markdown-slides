@@ -11,6 +11,20 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class DocumentFactory extends Factory
 {
+    public function configure(): static
+    {
+        return $this->afterCreating(function (Document $document): void {
+            $document->slides()->create([
+                'sort_order' => 1,
+                'content' => implode("\n", [
+                    '# '.fake()->sentence(3),
+                    '',
+                    fake()->paragraph(2),
+                ]),
+            ]);
+        });
+    }
+
     /**
      * Define the model's default state.
      *
@@ -23,16 +37,6 @@ class DocumentFactory extends Factory
             'theme_id' => null,
             'title' => fake()->sentence(4),
             'description' => fake()->optional()->sentence(10),
-            'content' => implode("\n", [
-                '# '.fake()->sentence(3),
-                '',
-                fake()->paragraph(2),
-                '',
-                '## Notes',
-                '',
-                '- '.fake()->sentence(),
-                '- '.fake()->sentence(),
-            ]),
         ];
     }
 }

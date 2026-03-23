@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -37,7 +38,6 @@ class DocumentController extends Controller
         $attributes = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
-            'content' => ['required', 'string'],
             'theme_id' => [
                 'nullable',
                 'integer',
@@ -47,19 +47,24 @@ class DocumentController extends Controller
 
         $document = $request->user()->documents()->create($attributes);
 
-        return redirect()->route('documents.show', $document)->with('status', 'Presentation created successfully.');
+        $document->slides()->create([
+            'sort_order' => 1,
+            'content' => "# New slide\n\nStart writing your presentation content.",
+        ]);
+
+        return redirect()->route('documents.edit', $document)->with('status', 'Presentation created successfully.');
     }
 
     public function show(Request $request, int $document): View
     {
-        $ownedDocument = $request->user()->documents()->with('theme')->findOrFail($document);
+        $ownedDocument = $request->user()->documents()->with(['theme', 'slides'])->findOrFail($document);
 
         return view('documents.show', ['document' => $ownedDocument]);
     }
 
     public function edit(Request $request, int $document): View
     {
-        $ownedDocument = $request->user()->documents()->with(['theme', 'images'])->findOrFail($document);
+        $ownedDocument = $request->user()->documents()->with(['theme', 'images', 'slides'])->findOrFail($document);
 
         return view('documents.edit', [
             'document' => $ownedDocument,
@@ -72,14 +77,13 @@ class DocumentController extends Controller
         ]);
     }
 
-    public function update(Request $request, int $document): RedirectResponse
+    public function update(Request $request, int $document): RedirectResponse|JsonResponse
     {
         $ownedDocument = $request->user()->documents()->findOrFail($document);
 
         $attributes = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
-            'content' => ['required', 'string'],
             'theme_id' => [
                 'nullable',
                 'integer',
@@ -89,7 +93,19 @@ class DocumentController extends Controller
 
         $ownedDocument->update($attributes);
 
-        return redirect()->route('documents.show', $ownedDocument)->with('status', 'Presentation updated successfully.');
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'document' => [
+                    'id' => (int) $ownedDocument->getKey(),
+                    'title' => (string) $ownedDocument->title,
+                    'description' => $ownedDocument->description,
+                    'theme_id' => $ownedDocument->theme_id,
+                ],
+            ]);
+        }
+
+        return redirect()->route('documents.edit', $ownedDocument)->with('status', 'Presentation updated successfully.');
     }
 
     public function destroy(Request $request, int $document): RedirectResponse

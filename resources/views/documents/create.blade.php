@@ -13,7 +13,7 @@
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                     <div>
                         <h1 class="h2 mb-1">Create Presentation</h1>
-                        <p class="text-body-secondary mb-0">Start writing your deck in markdown.</p>
+                        <p class="text-body-secondary mb-0">Add details, then continue in the slide-by-slide editor.</p>
                     </div>
                     <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">Back to list</a>
                 </div>

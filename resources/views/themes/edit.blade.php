@@ -13,17 +13,23 @@
                 <h1 class="h2 mb-1">Edit Theme</h1>
                 <p class="text-body-secondary mb-0">Update CSS and metadata.</p>
             </div>
-            <a href="{{ route('themes.show', $theme) }}" class="btn btn-outline-secondary">Back to theme</a>
+            <a href="{{ route('themes.index') }}" class="btn btn-outline-secondary">Back to themes</a>
         </div>
 
         <div class="row g-4 align-items-start">
             <div class="col-12 col-xl-8">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-4 p-md-5">
-                        <form method="POST" action="{{ route('themes.update', $theme) }}">
+                        <form
+                            method="POST"
+                            action="{{ route('themes.update', $theme) }}"
+                            data-theme-form
+                            data-theme-update-url="{{ route('themes.update', $theme) }}"
+                            data-csrf-token="{{ csrf_token() }}"
+                        >
                             @csrf
                             @method('PUT')
-                            @include('themes._form', ['submitLabel' => 'Save changes'])
+                            @include('themes._form', ['submitLabel' => 'Save changes', 'showSaveStatus' => true])
                         </form>
                     </div>
                 </div>
