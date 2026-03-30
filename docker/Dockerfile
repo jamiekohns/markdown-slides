@@ -71,11 +71,16 @@ RUN mkdir -p database storage/framework/cache storage/framework/sessions storage
     chown -R www-data:www-data ${APP_DIR} && \
     chmod -R ug+rwX storage bootstrap/cache database
 
-# Install JS deps and force stable Vite 5 toolchain for Monaco compatibility
-RUN rm -rf node_modules package-lock.json && \
-    npm install && \
-    npm install -D vite@^5 laravel-vite-plugin@^1 && \
-    npm run build
+# Frontend build is optional because this repo already ships compiled assets in public/build.
+# Set BUILD_FRONTEND=true at build time to compile assets in the image.
+ARG BUILD_FRONTEND=false
+ARG NODE_BUILD_MAX_OLD_SPACE=1536
+RUN if [ "${BUILD_FRONTEND}" = "true" ]; then \
+        npm ci --include=optional --no-audit --no-fund && \
+        NODE_OPTIONS="--max-old-space-size=${NODE_BUILD_MAX_OLD_SPACE}" npm run build; \
+    else \
+        echo "Skipping frontend build; using committed public/build assets."; \
+    fi
 
 # Nginx config
 RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf
