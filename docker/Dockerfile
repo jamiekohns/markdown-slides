@@ -8,7 +8,6 @@ ENV COMPOSER_ALLOW_SUPERUSER=1
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx \
     supervisor \
-    git \
     curl \
     unzip \
     zip \
@@ -48,8 +47,8 @@ RUN mkdir -p /etc/apt/keyrings && \
     apt-get update && apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/*
 
-# Clone app
-RUN git clone https://github.com/jamiekohns/markdown-slides.git ${APP_DIR}
+# Copy app into image (build context should be project root when building)
+COPY . ${APP_DIR}
 
 WORKDIR ${APP_DIR}
 
