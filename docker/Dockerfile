@@ -64,8 +64,10 @@ RUN cp .env.example .env && \
 
 # Create SQLite DB and writable dirs
 RUN mkdir -p database storage/framework/cache storage/framework/sessions storage/framework/views storage/logs && \
+    rm -f database/database.sqlite && \
     touch database/database.sqlite && \
     chown -R www-data:www-data ${APP_DIR} && \
+    mkdir -p /bootstrap/cache && chown www-data:www-data /bootstrap/cache && \
     chmod -R ug+rwX storage bootstrap/cache database
 
 # Frontend build is optional because this repo already ships compiled assets in public/build.
