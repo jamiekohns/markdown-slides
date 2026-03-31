@@ -111,6 +111,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 		const addButton = slideEditorRoot.querySelector('[data-slide-add]');
 		const deleteButton = slideEditorRoot.querySelector('[data-slide-delete]');
 		const saveAllButton = slideEditorRoot.querySelector('[data-slide-save-all]');
+		const importTriggerButton = slideEditorRoot.querySelector('[data-slide-import-trigger]');
+		const importInput = slideEditorRoot.querySelector('[data-slide-import-input]');
 		const statusEl = slideEditorRoot.querySelector('[data-slide-save-status]');
 		const activeLabel = slideEditorRoot.querySelector('[data-slide-active-label]');
 		const activeSlideEditor = editorInstances.get('active-slide-editor');
@@ -119,6 +121,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		const slidesStoreUrl = slideEditorRoot.dataset.slidesStoreUrl;
 		const slidesReorderUrl = slideEditorRoot.dataset.slidesReorderUrl;
 		const slidesSaveAllUrl = slideEditorRoot.dataset.slidesSaveAllUrl;
+		const slidesImportUrl = slideEditorRoot.dataset.slidesImportUrl;
 		const updateUrlTemplate = slideEditorRoot.dataset.slidesUpdateUrlTemplate;
 		const deleteUrlTemplate = slideEditorRoot.dataset.slidesDeleteUrlTemplate;
 
@@ -128,6 +131,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 			&& addButton
 			&& deleteButton
 			&& saveAllButton
+			&& importTriggerButton
+			&& importInput
 			&& statusEl
 			&& activeLabel
 			&& csrf
@@ -135,6 +140,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			&& slidesStoreUrl
 			&& slidesReorderUrl
 			&& slidesSaveAllUrl
+			&& slidesImportUrl
 			&& updateUrlTemplate
 			&& deleteUrlTemplate
 		) {
@@ -152,14 +158,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 			const findSlide = (slideId) => state.slides.find((slide) => slide.id === slideId);
 
 			const request = async (url, options = {}) => {
+				const isFormData = options.body instanceof FormData;
+				const headers = {
+					'Accept': 'application/json',
+					'X-CSRF-TOKEN': csrf,
+					...(options.headers || {}),
+				};
+
+				if (!isFormData && !Object.keys(headers).some((key) => key.toLowerCase() === 'content-type')) {
+					headers['Content-Type'] = 'application/json';
+				}
+
 				const response = await fetch(url, {
 					...options,
-					headers: {
-						'Accept': 'application/json',
-						'Content-Type': 'application/json',
-						'X-CSRF-TOKEN': csrf,
-						...(options.headers || {}),
-					},
+					headers,
 				});
 
 				const payload = await response.json().catch(() => ({}));
@@ -379,6 +391,57 @@ document.addEventListener('DOMContentLoaded', async () => {
 					setStatus('All slides saved');
 				} catch {
 					setStatus('Save all failed');
+				}
+			});
+
+			importTriggerButton.addEventListener('click', () => {
+				importInput.click();
+			});
+
+			importInput.addEventListener('change', async () => {
+				const file = importInput.files?.[0];
+
+				if (!file) {
+					return;
+				}
+
+				if (!window.confirm('Importing markdown replaces all current slides. Continue?')) {
+					importInput.value = '';
+					return;
+				}
+
+				const formData = new FormData();
+				formData.append('markdown_file', file);
+
+				setStatus('Importing markdown...');
+
+				try {
+					const payload = await request(slidesImportUrl, {
+						method: 'POST',
+						body: formData,
+					});
+
+					state.slides = (payload.slides || []).map((slide, index) => ({
+						...slide,
+						sort_order: index + 1,
+					}));
+
+					if (state.slides.length > 0) {
+						setActiveSlide(state.slides[0].id);
+					} else {
+						state.activeSlideId = null;
+						activeSlideEditor.setValue('');
+						renderSlides();
+						setStatus('Import completed with no slides.');
+					}
+
+					if (state.slides.length > 0) {
+						setStatus(`Imported ${payload.imported_count || state.slides.length} slide(s)`);
+					}
+				} catch (error) {
+					setStatus(error?.message || 'Import failed');
+				} finally {
+					importInput.value = '';
 				}
 			});
 

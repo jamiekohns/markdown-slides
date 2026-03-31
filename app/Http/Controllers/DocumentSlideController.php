@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Document;
 use App\Models\Slide;
+use App\Support\DocumentSlideContent;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class DocumentSlideController extends Controller
 {
@@ -171,6 +174,71 @@ class DocumentSlideController extends Controller
         });
 
         return response()->json(['status' => 'ok']);
+    }
+
+    public function export(Request $request, int $document): Response
+    {
+        $ownedDocument = $this->ownedDocument($request, $document);
+
+        $content = DocumentSlideContent::buildDeckMarkup(
+            $ownedDocument->slides()->orderBy('sort_order')->pluck('content')
+        );
+
+        $slug = Str::slug((string) $ownedDocument->title);
+        $filename = ($slug !== '' ? $slug : 'presentation') . '.md';
+
+        return response($content, 200, [
+            'Content-Type' => 'text/markdown; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    public function import(Request $request, int $document): JsonResponse
+    {
+        $ownedDocument = $this->ownedDocument($request, $document);
+
+        $attributes = $request->validate([
+            'markdown_file' => ['required_without:content', 'file', 'max:2048'],
+            'content' => ['required_without:markdown_file', 'string'],
+        ]);
+
+        $rawContent = $attributes['content'] ?? null;
+
+        if ($request->hasFile('markdown_file')) {
+            $fileContent = $request->file('markdown_file')?->get();
+
+            if (! is_string($fileContent)) {
+                return response()->json([
+                    'message' => 'Uploaded markdown file could not be read.',
+                ], 422);
+            }
+
+            $rawContent = $fileContent;
+        }
+
+        $slides = DocumentSlideContent::extractSlideBodies((string) $rawContent);
+
+        DB::transaction(function () use ($ownedDocument, $slides): void {
+            $ownedDocument->slides()->delete();
+
+            foreach ($slides as $index => $content) {
+                $ownedDocument->slides()->create([
+                    'sort_order' => $index + 1,
+                    'content' => $content,
+                ]);
+            }
+        });
+
+        $freshDocument = $ownedDocument->fresh(['slides']);
+
+        return response()->json([
+            'status' => 'ok',
+            'imported_count' => count($slides),
+            'slides' => $freshDocument?->slides
+                ->sortBy('sort_order')
+                ->values()
+                ->map(fn (Slide $slide) => $this->formatSlide($slide)),
+        ]);
     }
 
     private function ownedDocument(Request $request, int $document): Document

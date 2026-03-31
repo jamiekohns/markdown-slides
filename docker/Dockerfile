@@ -52,9 +52,6 @@ COPY . ${APP_DIR}
 
 WORKDIR ${APP_DIR}
 
-# Install PHP dependencies
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
-
 # Prepare Laravel env
 RUN cp .env.example .env && \
     php artisan key:generate && \
@@ -81,12 +78,20 @@ RUN if [ "${BUILD_FRONTEND}" = "true" ]; then \
         echo "Skipping frontend build; using committed public/build assets."; \
     fi
 
+# Install PHP dependencies
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+RUN npm install
+RUN npm run build
+RUN php artisan migrate --force
+RUN php artisan key:generate
+RUN php artisan tinker --execute="\App\Models\User::create(['name' => 'Admin', 'email' => 'admin@example.com', 'password' => bcrypt('password')]);"
+
 # Nginx config
 RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Supervisor config
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 EXPOSE 80
 

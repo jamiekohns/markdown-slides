@@ -40,6 +40,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/documents/{document}/slides/{slide}', [DocumentSlideController::class, 'destroy'])->name('documents.slides.destroy');
     Route::post('/documents/{document}/slides/reorder', [DocumentSlideController::class, 'reorder'])->name('documents.slides.reorder');
     Route::post('/documents/{document}/slides/save-all', [DocumentSlideController::class, 'saveAll'])->name('documents.slides.save-all');
+    Route::get('/documents/{document}/slides/export', [DocumentSlideController::class, 'export'])->name('documents.slides.export');
+    Route::post('/documents/{document}/slides/import', [DocumentSlideController::class, 'import'])->name('documents.slides.import');
 
     Route::resource('themes', ThemeController::class);
     Route::patch('/themes/{theme}/restore', [ThemeController::class, 'restore'])->name('themes.restore');

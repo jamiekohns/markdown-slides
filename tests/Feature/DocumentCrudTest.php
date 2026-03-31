@@ -366,4 +366,80 @@ class DocumentCrudTest extends TestCase
             'id' => $slide->id,
         ]);
     }
+
+    public function test_user_can_export_full_presentation_markdown(): void
+    {
+        $user = User::factory()->create();
+        $document = Document::factory()->for($user)->create([
+            'title' => 'Quarterly Plan',
+        ]);
+
+        $document->slides()->delete();
+        $document->slides()->createMany([
+            ['sort_order' => 1, 'content' => '# Intro'],
+            ['sort_order' => 2, 'content' => '## Wrap up'],
+        ]);
+
+        $response = $this->actingAs($user)
+            ->get(route('documents.slides.export', $document->id));
+
+        $response
+            ->assertOk()
+            ->assertHeader('content-type', 'text/markdown; charset=UTF-8')
+            ->assertHeader('content-disposition', 'attachment; filename="quarterly-plan.md"');
+
+        $content = (string) $response->getContent();
+
+        $this->assertStringContainsString('<x-slidewire::deck>', $content);
+        $this->assertStringContainsString('<x-slidewire::slide>', $content);
+        $this->assertStringContainsString('# Intro', $content);
+        $this->assertStringContainsString('## Wrap up', $content);
+    }
+
+    public function test_user_can_import_markdown_and_split_on_slide_tag(): void
+    {
+        $user = User::factory()->create();
+        $document = Document::factory()->for($user)->create();
+
+        $markdown = implode("\n", [
+            '<x-slidewire::deck>',
+            '<x-slidewire::slide class="intro">',
+            '<x-slidewire::markdown>',
+            '# First slide',
+            '</x-slidewire::markdown>',
+            '</x-slidewire::slide>',
+            '<x-slidewire::slide>',
+            '## Second slide',
+            '</x-slidewire::slide>',
+            '</x-slidewire::deck>',
+        ]);
+
+        $upload = UploadedFile::fake()->createWithContent('slides.md', $markdown);
+
+        $response = $this->actingAs($user)
+            ->post(route('documents.slides.import', $document->id), [
+                'markdown_file' => $upload,
+            ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('status', 'ok')
+            ->assertJsonPath('imported_count', 2)
+            ->assertJsonPath('slides.0.sort_order', 1)
+            ->assertJsonPath('slides.0.content', '# First slide')
+            ->assertJsonPath('slides.1.sort_order', 2)
+            ->assertJsonPath('slides.1.content', '## Second slide');
+
+        $this->assertDatabaseHas('slides', [
+            'document_id' => $document->id,
+            'sort_order' => 1,
+            'content' => '# First slide',
+        ]);
+
+        $this->assertDatabaseHas('slides', [
+            'document_id' => $document->id,
+            'sort_order' => 2,
+            'content' => '## Second slide',
+        ]);
+    }
 }

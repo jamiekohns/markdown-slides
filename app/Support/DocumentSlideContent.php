@@ -11,17 +11,29 @@ final class DocumentSlideContent
      */
     public static function extractSlideBodies(string $documentContent): array
     {
-        $matches = [];
-        $count = preg_match_all('/<x-slidewire::slide\b[^>]*>(.*?)<\/x-slidewire::slide>/is', $documentContent, $matches);
+        $splitMatches = [];
+        $containsSlideTags = preg_match('/<x-slidewire::slide\b[^>]*>/i', $documentContent, $splitMatches);
 
-        if (! is_int($count) || $count < 1) {
+        if (! is_int($containsSlideTags) || $containsSlideTags !== 1) {
             return [trim($documentContent)];
         }
 
-        $bodies = array_map(
-            static fn (mixed $body): string => is_string($body) ? trim($body) : '',
-            $matches[1] ?? [],
-        );
+        $segments = preg_split('/<x-slidewire::slide\b[^>]*>/i', $documentContent);
+
+        if (! is_array($segments) || count($segments) < 2) {
+            return [trim($documentContent)];
+        }
+
+        array_shift($segments);
+
+        $bodies = array_map(static function (mixed $segment): string {
+            $body = is_string($segment) ? $segment : '';
+            $body = preg_replace('/<\/x-slidewire::slide>/i', '', $body);
+            $body = preg_replace('/<\/?x-slidewire::markdown\b[^>]*>/i', '', $body);
+            $body = preg_replace('/<\/?x-slidewire::deck\b[^>]*>/i', '', $body);
+
+            return trim(is_string($body) ? $body : '');
+        }, $segments);
 
         return array_values($bodies);
     }

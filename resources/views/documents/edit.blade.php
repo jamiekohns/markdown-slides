@@ -43,6 +43,8 @@
                     data-slides-delete-url-template="{{ route('documents.slides.destroy', ['document' => $document->id, 'slide' => '__SLIDE_ID__']) }}"
                     data-slides-reorder-url="{{ route('documents.slides.reorder', $document) }}"
                     data-slides-save-all-url="{{ route('documents.slides.save-all', $document) }}"
+                    data-slides-export-url="{{ route('documents.slides.export', $document) }}"
+                    data-slides-import-url="{{ route('documents.slides.import', $document) }}"
                     data-csrf-token="{{ csrf_token() }}"
                 >
                     <div class="card-header bg-transparent d-flex flex-wrap align-items-center justify-content-between gap-2">
@@ -51,6 +53,9 @@
                             <small class="text-body-secondary">Drag to reorder. Changes autosave while you edit.</small>
                         </div>
                         <div class="d-flex gap-2">
+                            <a href="{{ route('documents.slides.export', $document) }}" class="btn btn-sm btn-outline-success">Export markdown</a>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-slide-import-trigger>Import markdown</button>
+                            <input type="file" class="d-none" data-slide-import-input accept=".md,.markdown,.txt,text/markdown,text/plain">
                             <button type="button" class="btn btn-sm btn-outline-secondary" data-slide-save-all>Save all now</button>
                             <button type="button" class="btn btn-sm btn-primary" data-slide-add>Add slide</button>
                         </div>
