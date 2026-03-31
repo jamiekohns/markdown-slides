@@ -1,5 +1,6 @@
 @php
     $title = old('title', $document->title ?? '');
+    $slug = old('slug', $document->slug ?? '');
     $description = old('description', $document->description ?? '');
     $themeId = old('theme_id', $document->theme_id ?? '');
 @endphp
@@ -17,6 +18,23 @@
         placeholder="Document title"
     />
     @error('title')
+        <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+</div>
+
+<div class="mb-3">
+    <label for="slug" class="form-label">Slug</label>
+    <input
+        id="slug"
+        name="slug"
+        type="text"
+        maxlength="255"
+        value="{{ $slug }}"
+        class="form-control @error('slug') is-invalid @enderror"
+        placeholder="my-presentation"
+    />
+    <div class="form-text">Used for the public presentation URL (for example, /my-presentation).</div>
+    @error('slug')
         <div class="invalid-feedback">{{ $message }}</div>
     @enderror
 </div>
@@ -60,7 +78,7 @@
         {{ $submitLabel }}
     </button>
 
-    <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">
+    <a href="{{ route('presentations.index') }}" class="btn btn-outline-secondary">
         Cancel
     </a>
 </div>

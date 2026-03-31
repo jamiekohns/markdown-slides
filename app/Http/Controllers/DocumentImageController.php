@@ -27,7 +27,7 @@ class DocumentImageController extends Controller
             'size' => (int) $file->getSize(),
         ]);
 
-        return redirect()->route('documents.edit', $ownedDocument)->with('status', 'Image uploaded successfully.');
+        return redirect()->route('presentations.edit', $ownedDocument)->with('status', 'Image uploaded successfully.');
     }
 
     public function destroy(Request $request, int $document, int $image): RedirectResponse
@@ -38,6 +38,6 @@ class DocumentImageController extends Controller
         Storage::disk('public')->delete($ownedImage->path);
         $ownedImage->delete();
 
-        return redirect()->route('documents.edit', $ownedDocument)->with('status', 'Image removed successfully.');
+        return redirect()->route('presentations.edit', $ownedDocument)->with('status', 'Image removed successfully.');
     }
 }

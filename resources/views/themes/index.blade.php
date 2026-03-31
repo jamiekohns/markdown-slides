@@ -24,9 +24,13 @@
                             <i class="bi bi-speedometer2 me-1"></i>
                             Dashboard
                         </a>
-                        <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">
+                        <a href="{{ route('presentations.index') }}" class="btn btn-outline-secondary">
                             <i class="bi bi-journal-richtext me-1"></i>
                             Presentations
+                        </a>
+                        <a href="{{ route('users.index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-people me-1"></i>
+                            Users
                         </a>
                         <a href="{{ route('themes.create') }}" class="btn btn-primary">
                             <i class="bi bi-plus-circle me-1"></i>

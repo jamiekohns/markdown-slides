@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Document;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -37,6 +39,7 @@ class DocumentController extends Controller
     {
         $attributes = $request->validate([
             'title' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'],
             'description' => ['nullable', 'string', 'max:1000'],
             'theme_id' => [
                 'nullable',
@@ -45,6 +48,11 @@ class DocumentController extends Controller
             ],
         ]);
 
+        $attributes['slug'] = $this->resolveSlug(
+            title: $attributes['title'],
+            requestedSlug: $attributes['slug'] ?? null,
+        );
+
         $document = $request->user()->documents()->create($attributes);
 
         $document->slides()->create([
@@ -52,7 +60,7 @@ class DocumentController extends Controller
             'content' => "# New slide\n\nStart writing your presentation content.",
         ]);
 
-        return redirect()->route('documents.edit', $document)->with('status', 'Presentation created successfully.');
+        return redirect()->route('presentations.edit', $document)->with('status', 'Presentation created successfully.');
     }
 
     public function show(Request $request, int $document): View
@@ -71,8 +79,8 @@ class DocumentController extends Controller
             'themes' => $request->user()->themes()->latest('name')->get(),
             'images' => $ownedDocument->images,
             'canUploadImages' => true,
-            'uploadImageRoute' => route('documents.images.store', $ownedDocument),
-            'deleteImageRouteName' => 'documents.images.destroy',
+            'uploadImageRoute' => route('presentations.images.store', $ownedDocument),
+            'deleteImageRouteName' => 'presentations.images.destroy',
             'imageOwnerId' => $ownedDocument->id,
         ]);
     }
@@ -83,6 +91,7 @@ class DocumentController extends Controller
 
         $attributes = $request->validate([
             'title' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'],
             'description' => ['nullable', 'string', 'max:1000'],
             'theme_id' => [
                 'nullable',
@@ -90,6 +99,12 @@ class DocumentController extends Controller
                 Rule::exists('themes', 'id')->where(fn ($query) => $query->where('user_id', $request->user()->id)),
             ],
         ]);
+
+        $attributes['slug'] = $this->resolveSlug(
+            title: $attributes['title'],
+            requestedSlug: $attributes['slug'] ?? null,
+            ignoreDocumentId: (int) $ownedDocument->getKey(),
+        );
 
         $ownedDocument->update($attributes);
 
@@ -99,13 +114,14 @@ class DocumentController extends Controller
                 'document' => [
                     'id' => (int) $ownedDocument->getKey(),
                     'title' => (string) $ownedDocument->title,
+                    'slug' => (string) $ownedDocument->slug,
                     'description' => $ownedDocument->description,
                     'theme_id' => $ownedDocument->theme_id,
                 ],
             ]);
         }
 
-        return redirect()->route('documents.edit', $ownedDocument)->with('status', 'Presentation updated successfully.');
+        return redirect()->route('presentations.edit', $ownedDocument)->with('status', 'Presentation updated successfully.');
     }
 
     public function destroy(Request $request, int $document): RedirectResponse
@@ -114,7 +130,7 @@ class DocumentController extends Controller
 
         $ownedDocument->delete();
 
-        return redirect()->route('documents.index')->with('status', 'Presentation moved to trash.');
+        return redirect()->route('presentations.index')->with('status', 'Presentation moved to trash.');
     }
 
     public function restore(Request $request, int $document): RedirectResponse
@@ -123,6 +139,38 @@ class DocumentController extends Controller
 
         $ownedDocument->restore();
 
-        return redirect()->route('documents.index')->with('status', 'Document restored.');
+        return redirect()->route('presentations.index')->with('status', 'Document restored.');
+    }
+
+    private function resolveSlug(string $title, ?string $requestedSlug, ?int $ignoreDocumentId = null): string
+    {
+        $baseSlug = trim((string) $requestedSlug);
+
+        if ($baseSlug === '') {
+            $baseSlug = Str::slug($title);
+        }
+
+        if ($baseSlug === '') {
+            $baseSlug = 'presentation';
+        }
+
+        $slug = $baseSlug;
+        $counter = 2;
+
+        while ($this->slugExists($slug, $ignoreDocumentId)) {
+            $slug = "{$baseSlug}-{$counter}";
+            ++$counter;
+        }
+
+        return $slug;
+    }
+
+    private function slugExists(string $slug, ?int $ignoreDocumentId = null): bool
+    {
+        return Document::query()
+            ->withTrashed()
+            ->when($ignoreDocumentId !== null, fn ($query) => $query->whereKeyNot($ignoreDocumentId))
+            ->where('slug', $slug)
+            ->exists();
     }
 }

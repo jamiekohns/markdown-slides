@@ -28,7 +28,11 @@
                             <i class="bi bi-palette me-1"></i>
                             Themes
                         </a>
-                        <a href="{{ route('documents.create') }}" class="btn btn-primary">
+                        <a href="{{ route('users.index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-people me-1"></i>
+                            Users
+                        </a>
+                        <a href="{{ route('presentations.create') }}" class="btn btn-primary">
                             <i class="bi bi-plus-circle me-1"></i>
                             New Presentation
                         </a>
@@ -70,8 +74,8 @@
                                                 <td class="text-end">
                                                     <div class="d-inline-flex gap-2">
                                                         <a class="btn btn-sm btn-outline-success" href="{{ $document->presentationUrl() }}" target="_blank" rel="noopener noreferrer">Present</a>
-                                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('documents.edit', $document) }}">Edit</a>
-                                                        <form method="POST" action="{{ route('documents.destroy', $document) }}" onsubmit="return confirm('Move this presentation to trash?');">
+                                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('presentations.edit', $document) }}">Edit</a>
+                                                        <form method="POST" action="{{ route('presentations.destroy', $document) }}" onsubmit="return confirm('Move this presentation to trash?');">
                                                             @csrf
                                                             @method('DELETE')
                                                             <button class="btn btn-sm btn-outline-danger" type="submit">Trash</button>
@@ -110,7 +114,7 @@
                                                 <td>{{ $document->title }}</td>
                                                 <td>{{ $document->deleted_at?->diffForHumans() }}</td>
                                                 <td class="text-end">
-                                                    <form method="POST" action="{{ route('documents.restore', $document->id) }}">
+                                                    <form method="POST" action="{{ route('presentations.restore', $document->id) }}">
                                                         @csrf
                                                         @method('PATCH')
                                                         <button class="btn btn-sm btn-outline-success" type="submit">Restore</button>

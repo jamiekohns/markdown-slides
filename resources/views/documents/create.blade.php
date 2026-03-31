@@ -15,14 +15,14 @@
                         <h1 class="h2 mb-1">Create Presentation</h1>
                         <p class="text-body-secondary mb-0">Add details, then continue in the slide-by-slide editor.</p>
                     </div>
-                    <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">Back to list</a>
+                    <a href="{{ route('presentations.index') }}" class="btn btn-outline-secondary">Back to list</a>
                 </div>
 
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-4 p-md-5">
-                        <form method="POST" action="{{ route('documents.store') }}">
+                        <form method="POST" action="{{ route('presentations.store') }}">
                             @csrf
-                            @include('documents._form', ['submitLabel' => 'Create presentation'])
+                            @include('presentations._form', ['submitLabel' => 'Create presentation'])
                         </form>
                     </div>
                 </div>

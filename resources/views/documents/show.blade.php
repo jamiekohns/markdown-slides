@@ -17,9 +17,9 @@
                     </div>
 
                     <div class="d-flex gap-2">
-                        <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">Back</a>
+                        <a href="{{ route('presentations.index') }}" class="btn btn-outline-secondary">Back</a>
                         <a href="{{ $document->presentationUrl() }}" class="btn btn-outline-success" target="_blank" rel="noopener noreferrer">Present</a>
-                        <a href="{{ route('documents.edit', $document) }}" class="btn btn-primary">Edit</a>
+                        <a href="{{ route('presentations.edit', $document) }}" class="btn btn-primary">Edit</a>
                     </div>
                 </div>
 

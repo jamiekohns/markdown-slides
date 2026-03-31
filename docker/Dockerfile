@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libfreetype6-dev \
     ca-certificates \
     gnupg \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # PHP extensions
@@ -85,6 +86,8 @@ RUN npm run build
 RUN php artisan migrate --force
 RUN php artisan key:generate
 RUN php artisan tinker --execute="\App\Models\User::create(['name' => 'Admin', 'email' => 'admin@example.com', 'password' => bcrypt('password')]);"
+RUN git config --global --add safe.directory /var/www/html
+
 
 # Nginx config
 RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf

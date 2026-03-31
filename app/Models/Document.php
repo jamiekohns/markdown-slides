@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use RuntimeException;
 
-#[Fillable(['user_id', 'theme_id', 'title', 'description'])]
+#[Fillable(['user_id', 'theme_id', 'title', 'slug', 'description'])]
 class Document extends Model
 {
     /** @use HasFactory<\Database\Factories\DocumentFactory> */
@@ -37,24 +37,12 @@ class Document extends Model
         return $this->hasMany(Slide::class)->orderBy('sort_order');
     }
 
-    public function presentationToken(): string
-    {
-        $friendlyName = preg_replace('/[^A-Za-z0-9]+/', '_', trim($this->title));
-        $friendlyName = is_string($friendlyName) ? trim($friendlyName, '_') : '';
-
-        if ($friendlyName === '') {
-            $friendlyName = 'document';
-        }
-
-        return "{$this->getKey()}-{$friendlyName}";
-    }
-
     public function presentationUrl(): string
     {
         if (! $this->exists) {
             throw new RuntimeException('Cannot generate presentation URL for an unsaved document.');
         }
 
-        return route('slidewire.database.presentations', ['document' => $this->presentationToken()]);
+        return route('public.presentations.show', ['slug' => $this->slug]);
     }
 }

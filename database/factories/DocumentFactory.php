@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\Document;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * @extends Factory<Document>
@@ -32,10 +33,13 @@ class DocumentFactory extends Factory
      */
     public function definition(): array
     {
+        $title = fake()->sentence(4);
+
         return [
             'user_id' => User::factory(),
             'theme_id' => null,
-            'title' => fake()->sentence(4),
+            'title' => $title,
+            'slug' => Str::slug($title).'-'.fake()->unique()->numberBetween(1000, 999999),
             'description' => fake()->optional()->sentence(10),
         ];
     }

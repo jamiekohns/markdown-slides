@@ -20,7 +20,7 @@ class DocumentCrudTest extends TestCase
         $user = User::factory()->create();
         $theme = Theme::factory()->for($user)->create();
 
-        $response = $this->actingAs($user)->post(route('documents.store'), [
+        $response = $this->actingAs($user)->post(route('presentations.store'), [
             'title' => 'Team Notes',
             'description' => 'Weekly sync notes',
             'theme_id' => $theme->id,
@@ -28,12 +28,13 @@ class DocumentCrudTest extends TestCase
 
         $document = Document::query()->where('title', 'Team Notes')->firstOrFail();
 
-        $response->assertRedirect(route('documents.edit', $document));
+        $response->assertRedirect(route('presentations.edit', $document));
 
         $this->assertDatabaseHas('documents', [
             'user_id' => $user->id,
             'theme_id' => $theme->id,
             'title' => 'Team Notes',
+            'slug' => 'team-notes',
             'description' => 'Weekly sync notes',
         ]);
 
@@ -51,15 +52,15 @@ class DocumentCrudTest extends TestCase
         $foreignDocument = Document::factory()->for($otherUser)->create();
 
         $this->actingAs($user)
-            ->get(route('documents.show', $foreignDocument->id))
+            ->get(route('presentations.show', $foreignDocument->id))
             ->assertNotFound();
 
         $this->actingAs($user)
-            ->get(route('documents.edit', $foreignDocument->id))
+            ->get(route('presentations.edit', $foreignDocument->id))
             ->assertNotFound();
 
         $this->actingAs($user)
-            ->put(route('documents.update', $foreignDocument->id), [
+            ->put(route('presentations.update', $foreignDocument->id), [
                 'title' => 'Nope',
                 'description' => null,
             ])
@@ -71,17 +72,40 @@ class DocumentCrudTest extends TestCase
         $user = User::factory()->create();
         $document = Document::factory()->for($user)->create();
 
-        $response = $this->actingAs($user)->put(route('documents.update', $document->id), [
+        $response = $this->actingAs($user)->put(route('presentations.update', $document->id), [
             'title' => 'Updated title',
+            'slug' => 'updated-title',
             'description' => 'Updated description',
         ]);
 
-        $response->assertRedirect(route('documents.edit', $document->id));
+        $response->assertRedirect(route('presentations.edit', $document->id));
 
         $this->assertDatabaseHas('documents', [
             'id' => $document->id,
             'title' => 'Updated title',
+            'slug' => 'updated-title',
             'description' => 'Updated description',
+        ]);
+    }
+
+    public function test_duplicate_slug_is_auto_incremented_on_create(): void
+    {
+        $user = User::factory()->create();
+
+        Document::factory()->for($user)->create([
+            'title' => 'One',
+            'slug' => 'shared-slug',
+        ]);
+
+        $this->actingAs($user)->post(route('presentations.store'), [
+            'title' => 'Two',
+            'slug' => 'shared-slug',
+            'description' => null,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('documents', [
+            'title' => 'Two',
+            'slug' => 'shared-slug-2',
         ]);
     }
 
@@ -91,16 +115,16 @@ class DocumentCrudTest extends TestCase
         $document = Document::factory()->for($user)->create();
 
         $this->actingAs($user)
-            ->delete(route('documents.destroy', $document->id))
-            ->assertRedirect(route('documents.index'));
+            ->delete(route('presentations.destroy', $document->id))
+            ->assertRedirect(route('presentations.index'));
 
         $this->assertSoftDeleted('documents', [
             'id' => $document->id,
         ]);
 
         $this->actingAs($user)
-            ->patch(route('documents.restore', $document->id))
-            ->assertRedirect(route('documents.index'));
+            ->patch(route('presentations.restore', $document->id))
+            ->assertRedirect(route('presentations.index'));
 
         $this->assertDatabaseHas('documents', [
             'id' => $document->id,
@@ -113,17 +137,18 @@ class DocumentCrudTest extends TestCase
         $user = User::factory()->create();
         $document = Document::factory()->for($user)->create([
             'title' => 'First Test Deck',
+            'slug' => 'first-test-deck',
         ]);
 
-        $presentationPath = '/presentations/' . $document->presentationToken();
+        $presentationPath = '/first-test-deck';
 
         $this->actingAs($user)
-            ->get(route('documents.index'))
+            ->get(route('presentations.index'))
             ->assertOk()
             ->assertSee($presentationPath, false);
 
         $this->actingAs($user)
-            ->get(route('documents.show', $document->id))
+            ->get(route('presentations.show', $document->id))
             ->assertOk()
             ->assertSee($presentationPath, false);
     }
@@ -134,7 +159,7 @@ class DocumentCrudTest extends TestCase
         $otherUser = User::factory()->create();
         $foreignTheme = Theme::factory()->for($otherUser)->create();
 
-        $response = $this->actingAs($user)->post(route('documents.store'), [
+        $response = $this->actingAs($user)->post(route('presentations.store'), [
             'title' => 'Security test',
             'description' => null,
             'theme_id' => $foreignTheme->id,
@@ -191,10 +216,10 @@ class DocumentCrudTest extends TestCase
         $document = Document::factory()->for($user)->create();
 
         $this->actingAs($user)
-            ->post(route('documents.images.store', $document->id), [
+            ->post(route('presentations.images.store', $document->id), [
                 'image' => UploadedFile::fake()->image('cover.png', 1200, 900),
             ])
-            ->assertRedirect(route('documents.edit', $document->id));
+            ->assertRedirect(route('presentations.edit', $document->id));
 
         $image = DB::table('images')
             ->where('imageable_type', Document::class)
@@ -205,8 +230,8 @@ class DocumentCrudTest extends TestCase
         $this->assertTrue(Storage::disk('public')->exists($image->path));
 
         $this->actingAs($user)
-            ->delete(route('documents.images.destroy', [$document->id, $image->id]))
-            ->assertRedirect(route('documents.edit', $document->id));
+            ->delete(route('presentations.images.destroy', [$document->id, $image->id]))
+            ->assertRedirect(route('presentations.edit', $document->id));
 
         $this->assertDatabaseMissing('images', ['id' => $image->id]);
         $this->assertFalse(Storage::disk('public')->exists($image->path));
@@ -231,7 +256,7 @@ class DocumentCrudTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('documents.edit', $document->id))
+            ->get(route('presentations.edit', $document->id))
             ->assertOk()
             ->assertSee('Presentation Images')
             ->assertSee('Insert at cursor')
@@ -244,7 +269,7 @@ class DocumentCrudTest extends TestCase
         $document = Document::factory()->for($user)->create();
 
         $listResponse = $this->actingAs($user)
-            ->getJson(route('documents.slides.index', $document->id));
+            ->getJson(route('presentations.slides.index', $document->id));
 
         $listResponse
             ->assertOk()
@@ -255,7 +280,7 @@ class DocumentCrudTest extends TestCase
         $firstSlideId = (int) $listResponse->json('slides.0.id');
 
         $this->actingAs($user)
-            ->putJson(route('documents.slides.update', [$document->id, $firstSlideId]), [
+            ->putJson(route('presentations.slides.update', [$document->id, $firstSlideId]), [
                 'content' => '# Updated first slide',
             ])
             ->assertOk();
@@ -266,7 +291,7 @@ class DocumentCrudTest extends TestCase
         ]);
 
         $addResponse = $this->actingAs($user)
-            ->postJson(route('documents.slides.store', $document->id), [
+            ->postJson(route('presentations.slides.store', $document->id), [
                 'content' => '# Added slide',
             ]);
 
@@ -274,7 +299,7 @@ class DocumentCrudTest extends TestCase
         $secondSlideId = (int) $addResponse->json('slide.id');
 
         $this->actingAs($user)
-            ->postJson(route('documents.slides.reorder', $document->id), [
+            ->postJson(route('presentations.slides.reorder', $document->id), [
                 'slide_ids' => [$secondSlideId, $firstSlideId],
             ])
             ->assertOk();
@@ -285,7 +310,7 @@ class DocumentCrudTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->postJson(route('documents.slides.save-all', $document->id), [
+            ->postJson(route('presentations.slides.save-all', $document->id), [
                 'slides' => [
                     ['id' => $secondSlideId, 'content' => '# Reordered first'],
                     ['id' => $firstSlideId, 'content' => '# Reordered second'],
@@ -300,7 +325,7 @@ class DocumentCrudTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->deleteJson(route('documents.slides.destroy', [$document->id, $secondSlideId]))
+            ->deleteJson(route('presentations.slides.destroy', [$document->id, $secondSlideId]))
             ->assertOk();
 
         $this->assertDatabaseMissing('slides', ['id' => $secondSlideId]);
@@ -314,11 +339,11 @@ class DocumentCrudTest extends TestCase
         $slide = $document->slides()->firstOrFail();
 
         $this->actingAs($attacker)
-            ->getJson(route('documents.slides.index', $document->id))
+            ->getJson(route('presentations.slides.index', $document->id))
             ->assertNotFound();
 
         $this->actingAs($attacker)
-            ->putJson(route('documents.slides.update', [$document->id, $slide->id]), [
+            ->putJson(route('presentations.slides.update', [$document->id, $slide->id]), [
                 'content' => '# Hacked',
             ])
             ->assertNotFound();
@@ -349,6 +374,19 @@ class DocumentCrudTest extends TestCase
         $this->assertLessThan($second, $first);
     }
 
+    public function test_slug_route_renders_presentation_view(): void
+    {
+        $user = User::factory()->create();
+        $document = Document::factory()->for($user)->create([
+            'slug' => 'launch-deck',
+        ]);
+
+        $response = $this->get('/' . $document->slug);
+
+        $response->assertOk();
+        $response->assertSee('slidewire-shell');
+    }
+
     public function test_cannot_delete_only_slide_from_presentation(): void
     {
         $user = User::factory()->create();
@@ -356,7 +394,7 @@ class DocumentCrudTest extends TestCase
         $slide = $document->slides()->firstOrFail();
 
         $this->actingAs($user)
-            ->deleteJson(route('documents.slides.destroy', [$document->id, $slide->id]))
+            ->deleteJson(route('presentations.slides.destroy', [$document->id, $slide->id]))
             ->assertStatus(422)
             ->assertJson([
                 'message' => 'A presentation must have at least one slide.',
@@ -381,7 +419,7 @@ class DocumentCrudTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)
-            ->get(route('documents.slides.export', $document->id));
+            ->get(route('presentations.slides.export', $document->id));
 
         $response
             ->assertOk()
@@ -417,7 +455,7 @@ class DocumentCrudTest extends TestCase
         $upload = UploadedFile::fake()->createWithContent('slides.md', $markdown);
 
         $response = $this->actingAs($user)
-            ->post(route('documents.slides.import', $document->id), [
+            ->post(route('presentations.slides.import', $document->id), [
                 'markdown_file' => $upload,
             ]);
 

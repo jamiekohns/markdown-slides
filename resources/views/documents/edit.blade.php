@@ -13,7 +13,7 @@
                 <h1 class="h2 mb-1">Edit Presentation</h1>
                 <p class="text-body-secondary mb-0">Edit document details and manage ordered slide content in one place.</p>
             </div>
-            <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">Back to presentations</a>
+            <a href="{{ route('presentations.index') }}" class="btn btn-outline-secondary">Back to presentations</a>
         </div>
 
         @if (session('status'))
@@ -25,7 +25,7 @@
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-4 p-md-5">
                         <h2 class="h5 mb-3">Presentation Details</h2>
-                        <form method="POST" action="{{ route('documents.update', $document) }}">
+                        <form method="POST" action="{{ route('presentations.update', $document) }}">
                             @csrf
                             @method('PUT')
                             @include('documents._form', ['submitLabel' => 'Save details'])
@@ -37,14 +37,14 @@
                     class="card border-0 shadow-sm mt-4"
                     data-slide-editor
                     data-document-id="{{ $document->id }}"
-                    data-slides-index-url="{{ route('documents.slides.index', $document) }}"
-                    data-slides-store-url="{{ route('documents.slides.store', $document) }}"
-                    data-slides-update-url-template="{{ route('documents.slides.update', ['document' => $document->id, 'slide' => '__SLIDE_ID__']) }}"
-                    data-slides-delete-url-template="{{ route('documents.slides.destroy', ['document' => $document->id, 'slide' => '__SLIDE_ID__']) }}"
-                    data-slides-reorder-url="{{ route('documents.slides.reorder', $document) }}"
-                    data-slides-save-all-url="{{ route('documents.slides.save-all', $document) }}"
-                    data-slides-export-url="{{ route('documents.slides.export', $document) }}"
-                    data-slides-import-url="{{ route('documents.slides.import', $document) }}"
+                    data-slides-index-url="{{ route('presentations.slides.index', $document) }}"
+                    data-slides-store-url="{{ route('presentations.slides.store', $document) }}"
+                    data-slides-update-url-template="{{ route('presentations.slides.update', ['document' => $document->id, 'slide' => '__SLIDE_ID__']) }}"
+                    data-slides-delete-url-template="{{ route('presentations.slides.destroy', ['document' => $document->id, 'slide' => '__SLIDE_ID__']) }}"
+                    data-slides-reorder-url="{{ route('presentations.slides.reorder', $document) }}"
+                    data-slides-save-all-url="{{ route('presentations.slides.save-all', $document) }}"
+                    data-slides-export-url="{{ route('presentations.slides.export', $document) }}"
+                    data-slides-import-url="{{ route('presentations.slides.import', $document) }}"
                     data-csrf-token="{{ csrf_token() }}"
                 >
                     <div class="card-header bg-transparent d-flex flex-wrap align-items-center justify-content-between gap-2">
@@ -53,7 +53,7 @@
                             <small class="text-body-secondary">Drag to reorder. Changes autosave while you edit.</small>
                         </div>
                         <div class="d-flex gap-2">
-                            <a href="{{ route('documents.slides.export', $document) }}" class="btn btn-sm btn-outline-success">Export markdown</a>
+                            <a href="{{ route('presentations.slides.export', $document) }}" class="btn btn-sm btn-outline-success">Export markdown</a>
                             <button type="button" class="btn btn-sm btn-outline-secondary" data-slide-import-trigger>Import markdown</button>
                             <input type="file" class="d-none" data-slide-import-input accept=".md,.markdown,.txt,text/markdown,text/plain">
                             <button type="button" class="btn btn-sm btn-outline-secondary" data-slide-save-all>Save all now</button>
