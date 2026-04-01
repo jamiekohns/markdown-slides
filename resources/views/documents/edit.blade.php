@@ -37,14 +37,14 @@
                     class="card border-0 shadow-sm mt-4"
                     data-slide-editor
                     data-document-id="{{ $document->id }}"
-                    data-slides-index-url="{{ route('presentations.slides.index', $document) }}"
-                    data-slides-store-url="{{ route('presentations.slides.store', $document) }}"
-                    data-slides-update-url-template="{{ route('presentations.slides.update', ['document' => $document->id, 'slide' => '__SLIDE_ID__']) }}"
-                    data-slides-delete-url-template="{{ route('presentations.slides.destroy', ['document' => $document->id, 'slide' => '__SLIDE_ID__']) }}"
-                    data-slides-reorder-url="{{ route('presentations.slides.reorder', $document) }}"
-                    data-slides-save-all-url="{{ route('presentations.slides.save-all', $document) }}"
-                    data-slides-export-url="{{ route('presentations.slides.export', $document) }}"
-                    data-slides-import-url="{{ route('presentations.slides.import', $document) }}"
+                    data-slides-index-url="{{ route('presentations.slides.index', $document, false) }}"
+                    data-slides-store-url="{{ route('presentations.slides.store', $document, false) }}"
+                    data-slides-update-url-template="{{ route('presentations.slides.update', ['document' => $document->id, 'slide' => '__SLIDE_ID__'], false) }}"
+                    data-slides-delete-url-template="{{ route('presentations.slides.destroy', ['document' => $document->id, 'slide' => '__SLIDE_ID__'], false) }}"
+                    data-slides-reorder-url="{{ route('presentations.slides.reorder', $document, false) }}"
+                    data-slides-save-all-url="{{ route('presentations.slides.save-all', $document, false) }}"
+                    data-slides-export-url="{{ route('presentations.slides.export', $document, false) }}"
+                    data-slides-import-url="{{ route('presentations.slides.import', $document, false) }}"
                     data-csrf-token="{{ csrf_token() }}"
                 >
                     <div class="card-header bg-transparent d-flex flex-wrap align-items-center justify-content-between gap-2">
