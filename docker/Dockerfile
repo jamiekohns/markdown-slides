@@ -54,8 +54,7 @@ COPY . ${APP_DIR}
 WORKDIR ${APP_DIR}
 
 # Prepare Laravel env
-RUN cp .env.example .env && \
-    php artisan key:generate && \
+RUN if [ -f .env.example ]; then cp .env.example .env; else touch .env; fi && \
     sed -i 's/^APP_ENV=.*/APP_ENV=production/' .env && \
     sed -i 's/^APP_DEBUG=.*/APP_DEBUG=false/' .env && \
     sed -i 's#^APP_URL=.*#APP_URL=http://localhost#' .env && \
@@ -64,8 +63,10 @@ RUN cp .env.example .env && \
 
 # Create SQLite DB and writable dirs
 RUN mkdir -p database storage/framework/cache storage/framework/sessions storage/framework/views storage/logs && \
+    rm -f database/database.sqlite && \
     touch database/database.sqlite && \
     chown -R www-data:www-data ${APP_DIR} && \
+    mkdir -p bootstrap/cache && chown www-data:www-data bootstrap/cache && \
     chmod -R ug+rwX storage bootstrap/cache database
 
 # Frontend build is optional because this repo already ships compiled assets in public/build.
