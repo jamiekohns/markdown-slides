@@ -43,6 +43,6 @@ class Document extends Model
             throw new RuntimeException('Cannot generate presentation URL for an unsaved document.');
         }
 
-        return route('public.presentations.show', ['slug' => $this->slug]);
+        return route('public.presentations.show', ['slug' => $this->slug], false);
     }
 }

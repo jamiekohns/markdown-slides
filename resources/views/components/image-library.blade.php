@@ -43,7 +43,7 @@
         <div class="d-flex flex-column gap-3">
             @forelse ($images as $image)
                 @php
-                    $publicUrl = asset('storage/' . ltrim($image->path, '/'));
+                    $publicUrl = \Illuminate\Support\Facades\Storage::url($image->path);
                     $baseName = pathinfo($image->original_name, PATHINFO_FILENAME);
                     $markdownSnippet = '![' . $baseName . '](' . $publicUrl . ')';
                     $cssSnippet = "url('" . $publicUrl . "')";

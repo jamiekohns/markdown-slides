@@ -131,6 +131,6 @@ class ThemeCrudTest extends TestCase
             ->assertOk()
             ->assertSee('Theme Images')
             ->assertSee('Insert at cursor')
-            ->assertSee(asset('storage/' . $path), false);
+            ->assertSee('/storage/' . ltrim($path, '/'), false);
     }
 }

@@ -24,7 +24,7 @@
                             method="POST"
                             action="{{ route('themes.update', $theme) }}"
                             data-theme-form
-                            data-theme-update-url="{{ route('themes.update', $theme) }}"
+                            data-theme-update-url="{{ route('themes.update', $theme, false) }}"
                             data-csrf-token="{{ csrf_token() }}"
                         >
                             @csrf

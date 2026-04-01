@@ -260,7 +260,7 @@ class DocumentCrudTest extends TestCase
             ->assertOk()
             ->assertSee('Presentation Images')
             ->assertSee('Insert at cursor')
-            ->assertSee(asset('storage/' . $path), false);
+            ->assertSee('/storage/' . ltrim($path, '/'), false);
     }
 
     public function test_user_can_manage_slides_without_leaving_editor_flow(): void
