@@ -21,7 +21,7 @@
         @endif
 
         <div class="row g-4 align-items-start">
-            <div class="col-12 col-xl-8">
+            <div class="col-12 col-xl-6">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-4 p-md-5">
                         <h2 class="h5 mb-3">Presentation Details</h2>
@@ -87,7 +87,7 @@
                 </div>
             </div>
 
-            <div class="col-12 col-xl-4">
+            <div class="col-12 col-xl-6">
                 <x-image-library
                     title="Presentation Images"
                     hint="Upload deck-specific assets. Click &ldquo;Insert at cursor&rdquo; to place a Markdown image snippet at the editor cursor."

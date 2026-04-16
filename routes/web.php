@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentImageController;
+use App\Http\Controllers\DocumentScriptController;
 use App\Http\Controllers\DocumentSlideController;
+use App\Http\Controllers\PresentationPresenterController;
 use App\Http\Controllers\PresentationController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\ThemeImageController;
@@ -41,6 +43,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/presentations/{document}/slides/save-all', [DocumentSlideController::class, 'saveAll'])->name('presentations.slides.save-all');
     Route::get('/presentations/{document}/slides/export', [DocumentSlideController::class, 'export'])->name('presentations.slides.export');
     Route::post('/presentations/{document}/slides/import', [DocumentSlideController::class, 'import'])->name('presentations.slides.import');
+    Route::get('/presentations/{document}/script', [DocumentScriptController::class, 'show'])->name('presentations.script.show');
+    Route::put('/presentations/{document}/script', [DocumentScriptController::class, 'update'])->name('presentations.script.update');
+    Route::get('/presentations/{document}/presenter', PresentationPresenterController::class)->name('presentations.presenter.show');
 
     Route::resource('themes', ThemeController::class);
     Route::patch('/themes/{theme}/restore', [ThemeController::class, 'restore'])->name('themes.restore');

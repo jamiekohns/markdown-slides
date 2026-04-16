@@ -55,6 +55,10 @@ class DocumentController extends Controller
 
         $document = $request->user()->documents()->create($attributes);
 
+        $document->script()->create([
+            'content' => '',
+        ]);
+
         $document->slides()->create([
             'sort_order' => 1,
             'content' => "# New slide\n\nStart writing your presentation content.",
@@ -72,7 +76,7 @@ class DocumentController extends Controller
 
     public function edit(Request $request, int $document): View
     {
-        $ownedDocument = $request->user()->documents()->with(['theme', 'images', 'slides'])->findOrFail($document);
+        $ownedDocument = $request->user()->documents()->with(['theme', 'images', 'slides', 'script'])->findOrFail($document);
 
         return view('documents.edit', [
             'document' => $ownedDocument,

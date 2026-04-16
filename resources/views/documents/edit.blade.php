@@ -13,7 +13,10 @@
                 <h1 class="h2 mb-1">Edit Presentation</h1>
                 <p class="text-body-secondary mb-0">Edit document details and manage ordered slide content in one place.</p>
             </div>
-            <a href="{{ route('presentations.index') }}" class="btn btn-outline-secondary">Back to presentations</a>
+            <div class="d-flex gap-2">
+                <a href="{{ route('presentations.presenter.show', $document) }}" class="btn btn-outline-primary" target="_blank" rel="noopener">Open presenter view</a>
+                <a href="{{ route('presentations.index') }}" class="btn btn-outline-secondary">Back to presentations</a>
+            </div>
         </div>
 
         @if (session('status'))
@@ -21,7 +24,7 @@
         @endif
 
         <div class="row g-4 align-items-start">
-            <div class="col-12 col-xl-8">
+            <div class="col-12 col-xl-6">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-4 p-md-5">
                         <h2 class="h5 mb-3">Presentation Details</h2>
@@ -33,6 +36,25 @@
                     </div>
                 </div>
 
+            </div>
+
+            <div class="col-12 col-xl-6">
+                <x-image-library
+                    title="Presentation Images"
+                    hint="Upload deck-specific assets. Click &ldquo;Insert at cursor&rdquo; to place a Markdown image snippet at the editor cursor."
+                    :images="$images"
+                    :can-upload="$canUploadImages"
+                    :upload-route="$uploadImageRoute"
+                    :delete-route-name="$deleteImageRouteName"
+                    :owner-id="$imageOwnerId"
+                    monaco-target-id="active-slide-editor"
+                    monaco-language="markdown"
+                />
+            </div>
+        </div>
+
+        <div class="row g-4 align-items-start">
+            <div class="col-12 col-xl-6">
                 <div
                     class="card border-0 shadow-sm mt-4"
                     data-slide-editor
@@ -46,6 +68,8 @@
                     data-slides-export-url="{{ route('presentations.slides.export', $document, false) }}"
                     data-slides-import-url="{{ route('presentations.slides.import', $document, false) }}"
                     data-csrf-token="{{ csrf_token() }}"
+                    data-script-show-url="{{ route('presentations.script.show', $document, false) }}"
+                    data-script-update-url="{{ route('presentations.script.update', $document, false) }}"
                 >
                     <div class="card-header bg-transparent d-flex flex-wrap align-items-center justify-content-between gap-2">
                         <div>
@@ -86,19 +110,20 @@
                     </div>
                 </div>
             </div>
-
-            <div class="col-12 col-xl-4">
-                <x-image-library
-                    title="Presentation Images"
-                    hint="Upload deck-specific assets. Click &ldquo;Insert at cursor&rdquo; to place a Markdown image snippet at the editor cursor."
-                    :images="$images"
-                    :can-upload="$canUploadImages"
-                    :upload-route="$uploadImageRoute"
-                    :delete-route-name="$deleteImageRouteName"
-                    :owner-id="$imageOwnerId"
-                    monaco-target-id="active-slide-editor"
-                    monaco-language="markdown"
-                />
+            <div class="col-12 col-xl-6">
+                <div class="card border-0 shadow-sm mt-4">
+                    <div class="card-header bg-transparent d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <div>
+                            <h2 class="h5 mb-0">Script</h2>
+                            <small class="text-body-secondary">Teleprompter script in Markdown. Add &lt;x-slidewire::slide&gt; markers to trigger slide changes while scrolling.</small>
+                        </div>
+                        <small class="text-body-secondary" data-script-save-status>Loading script...</small>
+                    </div>
+                    <div class="card-body">
+                        <div id="presentation-script-editor" data-monaco-editor data-monaco-target="presentation-script-textarea" data-monaco-language="markdown" style="height: 360px;"></div>
+                        <textarea id="presentation-script-textarea" class="d-none" aria-hidden="true">{{ (string) ($document->script?->content ?? '') }}</textarea>
+                    </div>
+                </div>
             </div>
         </div>
     </main>

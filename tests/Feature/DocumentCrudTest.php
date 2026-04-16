@@ -42,6 +42,96 @@ class DocumentCrudTest extends TestCase
             'document_id' => $document->id,
             'sort_order' => 1,
         ]);
+
+        $this->assertDatabaseHas('scripts', [
+            'document_id' => $document->id,
+            'content' => '',
+        ]);
+    }
+
+    public function test_user_can_load_and_update_owned_document_script(): void
+    {
+        $user = User::factory()->create();
+        $document = Document::factory()->for($user)->create();
+
+        $this->actingAs($user)
+            ->getJson(route('presentations.script.show', $document->id))
+            ->assertOk()
+            ->assertJsonStructure([
+                'script' => ['id', 'content', 'updated_at'],
+            ]);
+
+        $content = implode("\n", [
+            '# Intro',
+            '',
+            'Opening lines',
+            '<x-slidewire::slide>',
+            'Second cue',
+        ]);
+
+        $this->actingAs($user)
+            ->putJson(route('presentations.script.update', $document->id), [
+                'content' => $content,
+            ])
+            ->assertOk()
+            ->assertJsonPath('status', 'ok')
+            ->assertJsonPath('script.content', $content);
+
+        $this->assertDatabaseHas('scripts', [
+            'document_id' => $document->id,
+            'content' => $content,
+        ]);
+    }
+
+    public function test_user_cannot_access_foreign_document_script_or_presenter_route(): void
+    {
+        $owner = User::factory()->create();
+        $attacker = User::factory()->create();
+        $document = Document::factory()->for($owner)->create();
+
+        $this->actingAs($attacker)
+            ->getJson(route('presentations.script.show', $document->id))
+            ->assertNotFound();
+
+        $this->actingAs($attacker)
+            ->putJson(route('presentations.script.update', $document->id), [
+                'content' => '# Attempt',
+            ])
+            ->assertNotFound();
+
+        $this->actingAs($attacker)
+            ->get(route('presentations.presenter.show', $document->id))
+            ->assertNotFound();
+    }
+
+    public function test_presenter_view_renders_script_without_raw_slide_marker_tags(): void
+    {
+        $user = User::factory()->create();
+        $document = Document::factory()->for($user)->create();
+
+        $scriptContent = implode("\n", [
+            '# First cue',
+            '',
+            'Talk track one',
+            '<x-slidewire::slide>',
+            'Talk track two',
+            '<x-slidewire::slide />',
+            'Talk track three',
+        ]);
+
+        $document->script()->updateOrCreate(
+            ['document_id' => $document->id],
+            ['content' => $scriptContent]
+        );
+
+        $this->actingAs($user)
+            ->get(route('presentations.presenter.show', $document->id))
+            ->assertOk()
+            ->assertSee('Talk track one')
+            ->assertSee('Talk track two')
+            ->assertSee('Talk track three')
+            ->assertDontSee('&lt;x-slidewire::slide&gt;', false)
+            ->assertDontSee('<x-slidewire::slide>', false);
     }
 
     public function test_user_can_only_access_owned_document_routes(): void

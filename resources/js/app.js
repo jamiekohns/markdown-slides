@@ -554,7 +554,90 @@ document.addEventListener('DOMContentLoaded', async () => {
 				}
 			});
 
-			await loadSlides();
+			try {
+				await loadSlides();
+			} catch {
+				setStatus('Could not load slides.');
+			}
+		}
+
+		const scriptEditor = editorInstances.get('presentation-script-editor');
+		const scriptStatusEl = document.querySelector('[data-script-save-status]');
+		const scriptShowUrl = slideEditorRoot.dataset.scriptShowUrl;
+		const scriptUpdateUrl = slideEditorRoot.dataset.scriptUpdateUrl;
+
+		if (scriptEditor && scriptStatusEl && csrf && scriptShowUrl && scriptUpdateUrl) {
+			let scriptAutosaveTimer = null;
+			let isProgrammaticScriptEdit = false;
+
+			const setScriptStatus = (message) => {
+				scriptStatusEl.textContent = message;
+			};
+
+			const requestScript = async (url, options = {}) => {
+				const response = await fetch(url, {
+					...options,
+					headers: {
+						'Accept': 'application/json',
+						'Content-Type': 'application/json',
+						'X-CSRF-TOKEN': csrf,
+						...(options.headers || {}),
+					},
+				});
+
+				const payload = await response.json().catch(() => ({}));
+
+				if (!response.ok) {
+					const error = new Error(payload.message || 'Request failed.');
+					error.payload = payload;
+					throw error;
+				}
+
+				return payload;
+			};
+
+			const saveScript = async (content) => {
+				setScriptStatus('Saving script...');
+
+				try {
+					await requestScript(scriptUpdateUrl, {
+						method: 'PUT',
+						body: JSON.stringify({ content }),
+					});
+
+					setScriptStatus('Script saved');
+				} catch {
+					setScriptStatus('Script save failed. Changes will retry.');
+				}
+			};
+
+			monacoChangeCallbacks.set('presentation-script-textarea', (newValue) => {
+				if (isProgrammaticScriptEdit) {
+					return;
+				}
+
+				setScriptStatus('Script has unsaved changes...');
+
+				if (scriptAutosaveTimer !== null) {
+					window.clearTimeout(scriptAutosaveTimer);
+				}
+
+				scriptAutosaveTimer = window.setTimeout(() => {
+					void saveScript(newValue);
+					scriptAutosaveTimer = null;
+				}, 800);
+			});
+
+			try {
+				setScriptStatus('Loading script...');
+				const payload = await requestScript(scriptShowUrl, { method: 'GET' });
+				isProgrammaticScriptEdit = true;
+				scriptEditor.setValue(payload?.script?.content || '');
+				isProgrammaticScriptEdit = false;
+				setScriptStatus('Script loaded');
+			} catch {
+				setScriptStatus('Script could not be loaded.');
+			}
 		}
 	}
 

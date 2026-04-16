@@ -15,6 +15,10 @@ class DocumentFactory extends Factory
     public function configure(): static
     {
         return $this->afterCreating(function (Document $document): void {
+            $document->script()->create([
+                'content' => '',
+            ]);
+
             $document->slides()->create([
                 'sort_order' => 1,
                 'content' => implode("\n", [
