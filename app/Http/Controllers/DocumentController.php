@@ -63,6 +63,7 @@ class DocumentController extends Controller
             'sort_order' => 1,
             'title' => 'Slide 1',
             'content' => "# New slide\n\nStart writing your presentation content.",
+            'script' => '',
         ]);
 
         return redirect()->route('presentations.edit', $document)->with('status', 'Presentation created successfully.');

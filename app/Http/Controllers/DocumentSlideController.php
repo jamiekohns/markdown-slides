@@ -32,6 +32,7 @@ class DocumentSlideController extends Controller
         $attributes = $request->validate([
             'title' => ['nullable', 'string', 'max:255'],
             'content' => ['nullable', 'string'],
+            'script' => ['nullable', 'string'],
         ]);
 
         $nextOrder = (int) $ownedDocument->slides()->max('sort_order') + 1;
@@ -47,6 +48,7 @@ class DocumentSlideController extends Controller
             'sort_order' => $nextOrder,
             'title' => $title,
             'content' => $attributes['content'] ?? '',
+            'script' => $attributes['script'] ?? '',
         ]);
 
         return response()->json([
@@ -66,6 +68,7 @@ class DocumentSlideController extends Controller
         $attributes = $request->validate([
             'title' => ['nullable', 'string', 'max:255'],
             'content' => ['required', 'string'],
+            'script' => ['nullable', 'string'],
         ]);
 
         $title = $this->normalizeTitle($attributes['title'] ?? null, (int) $ownedSlide->sort_order);
@@ -79,6 +82,7 @@ class DocumentSlideController extends Controller
         $ownedSlide->update([
             'title' => $title,
             'content' => $attributes['content'],
+            'script' => $attributes['script'] ?? '',
         ]);
 
         return response()->json([
@@ -155,6 +159,7 @@ class DocumentSlideController extends Controller
             'slides.*.id' => ['required', 'integer'],
             'slides.*.title' => ['nullable', 'string', 'max:255'],
             'slides.*.content' => ['required', 'string'],
+            'slides.*.script' => ['nullable', 'string'],
         ]);
 
         $existingIds = $ownedDocument->slides()->pluck('id')->sort()->values()->all();
@@ -193,6 +198,7 @@ class DocumentSlideController extends Controller
                     ->update([
                         'title' => $this->normalizeTitle($incomingSlide['title'] ?? null, $index + 1),
                         'content' => $incomingSlide['content'],
+                        'script' => $incomingSlide['script'] ?? '',
                         'sort_order' => $temporaryOffset + $index + 1,
                     ]);
             }
@@ -204,6 +210,7 @@ class DocumentSlideController extends Controller
                     ->update([
                         'title' => $this->normalizeTitle($incomingSlide['title'] ?? null, $index + 1),
                         'content' => $incomingSlide['content'],
+                        'script' => $incomingSlide['script'] ?? '',
                         'sort_order' => $index + 1,
                     ]);
             }
@@ -262,6 +269,7 @@ class DocumentSlideController extends Controller
                     'sort_order' => $index + 1,
                     'title' => 'Slide ' . ($index + 1),
                     'content' => $content,
+                    'script' => '',
                 ]);
             }
         });
@@ -302,6 +310,7 @@ class DocumentSlideController extends Controller
             'sort_order' => (int) $slide->sort_order,
             'title' => $slide->title,
             'content' => (string) $slide->content,
+            'script' => (string) ($slide->script ?? ''),
             'updated_at' => $slide->updated_at?->toIso8601String(),
         ];
     }

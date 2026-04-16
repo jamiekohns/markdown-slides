@@ -144,6 +144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		const activeLabel = slideEditorRoot.querySelector('[data-slide-active-label]');
 		const titleInput = slideEditorRoot.querySelector('[data-slide-title-input]');
 		const activeSlideEditor = editorInstances.get('active-slide-editor');
+		const activeSlideScriptEditor = editorInstances.get('active-slide-script-editor');
 		const csrf = slideEditorRoot.dataset.csrfToken;
 		const slidesIndexUrl = slideEditorRoot.dataset.slidesIndexUrl;
 		const slidesStoreUrl = slideEditorRoot.dataset.slidesStoreUrl;
@@ -155,6 +156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 		if (
 			activeSlideEditor
+			&& activeSlideScriptEditor
 			&& slidesList
 			&& addButton
 			&& deleteButton
@@ -269,6 +271,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 				state.activeSlideId = slide.id;
 				state.isProgrammaticEdit = true;
 				activeSlideEditor.setValue(slide.content || '');
+				activeSlideScriptEditor.setValue(slide.script || '');
 				titleInput.value = slide.title || '';
 				titleInput.disabled = false;
 				state.isProgrammaticEdit = false;
@@ -298,6 +301,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 					titleInput.value = '';
 					titleInput.disabled = true;
 					activeSlideEditor.setValue('');
+					activeSlideScriptEditor.setValue('');
 					renderSlides();
 					return;
 				}
@@ -323,6 +327,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 						body: JSON.stringify({
 							title: slide.title || '',
 							content: slide.content,
+							script: slide.script || '',
 						}),
 					});
 
@@ -367,6 +372,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 				queueAutosave(activeSlide.id);
 			});
 
+			monacoChangeCallbacks.set('active-slide-script-textarea', (newValue) => {
+				if (state.isProgrammaticEdit || state.activeSlideId === null) {
+					return;
+				}
+
+				const activeSlide = findSlide(state.activeSlideId);
+				if (!activeSlide) {
+					return;
+				}
+
+				activeSlide.script = newValue;
+				queueAutosave(activeSlide.id);
+			});
+
 			addButton.addEventListener('click', async () => {
 				setStatus('Adding slide...');
 
@@ -377,6 +396,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 						body: JSON.stringify({
 							title: `Slide ${nextSlideNumber}`,
 							content: '# New slide\n\nAdd content here.',
+							script: '',
 						}),
 					});
 
@@ -424,6 +444,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 						titleInput.value = '';
 						titleInput.disabled = true;
 						activeSlideEditor.setValue('');
+						activeSlideScriptEditor.setValue('');
 						activeLabel.textContent = 'No slide selected';
 						renderSlides();
 					}
@@ -445,6 +466,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 								id: slide.id,
 								title: slide.title || '',
 								content: slide.content,
+								script: slide.script || '',
 							})),
 						}),
 					});
@@ -494,6 +516,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 						titleInput.value = '';
 						titleInput.disabled = true;
 						activeSlideEditor.setValue('');
+						activeSlideScriptEditor.setValue('');
 						activeLabel.textContent = 'No slide selected';
 						renderSlides();
 						setStatus('Import completed with no slides.');
@@ -611,85 +634,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 				await loadSlides();
 			} catch {
 				setStatus('Could not load slides.');
-			}
-		}
-
-		const scriptEditor = editorInstances.get('presentation-script-editor');
-		const scriptStatusEl = document.querySelector('[data-script-save-status]');
-		const scriptShowUrl = slideEditorRoot.dataset.scriptShowUrl;
-		const scriptUpdateUrl = slideEditorRoot.dataset.scriptUpdateUrl;
-
-		if (scriptEditor && scriptStatusEl && csrf && scriptShowUrl && scriptUpdateUrl) {
-			let scriptAutosaveTimer = null;
-			let isProgrammaticScriptEdit = false;
-
-			const setScriptStatus = (message) => {
-				scriptStatusEl.textContent = message;
-			};
-
-			const requestScript = async (url, options = {}) => {
-				const response = await fetch(url, {
-					...options,
-					headers: {
-						'Accept': 'application/json',
-						'Content-Type': 'application/json',
-						'X-CSRF-TOKEN': csrf,
-						...(options.headers || {}),
-					},
-				});
-
-				const payload = await response.json().catch(() => ({}));
-
-				if (!response.ok) {
-					const error = new Error(payload.message || 'Request failed.');
-					error.payload = payload;
-					throw error;
-				}
-
-				return payload;
-			};
-
-			const saveScript = async (content) => {
-				setScriptStatus('Saving script...');
-
-				try {
-					await requestScript(scriptUpdateUrl, {
-						method: 'PUT',
-						body: JSON.stringify({ content }),
-					});
-
-					setScriptStatus('Script saved');
-				} catch {
-					setScriptStatus('Script save failed. Changes will retry.');
-				}
-			};
-
-			monacoChangeCallbacks.set('presentation-script-textarea', (newValue) => {
-				if (isProgrammaticScriptEdit) {
-					return;
-				}
-
-				setScriptStatus('Script has unsaved changes...');
-
-				if (scriptAutosaveTimer !== null) {
-					window.clearTimeout(scriptAutosaveTimer);
-				}
-
-				scriptAutosaveTimer = window.setTimeout(() => {
-					void saveScript(newValue);
-					scriptAutosaveTimer = null;
-				}, 800);
-			});
-
-			try {
-				setScriptStatus('Loading script...');
-				const payload = await requestScript(scriptShowUrl, { method: 'GET' });
-				isProgrammaticScriptEdit = true;
-				scriptEditor.setValue(payload?.script?.content || '');
-				isProgrammaticScriptEdit = false;
-				setScriptStatus('Script loaded');
-			} catch {
-				setScriptStatus('Script could not be loaded.');
 			}
 		}
 	}

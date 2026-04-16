@@ -54,7 +54,7 @@
         </div>
 
         <div class="row g-4 align-items-start">
-            <div class="col-12 col-xl-6">
+            <div class="col-12">
                 <div
                     class="card border-0 shadow-sm mt-4"
                     data-slide-editor
@@ -68,8 +68,6 @@
                     data-slides-export-url="{{ route('presentations.slides.export', $document, false) }}"
                     data-slides-import-url="{{ route('presentations.slides.import', $document, false) }}"
                     data-csrf-token="{{ csrf_token() }}"
-                    data-script-show-url="{{ route('presentations.script.show', $document, false) }}"
-                    data-script-update-url="{{ route('presentations.script.update', $document, false) }}"
                 >
                     <div class="card-header bg-transparent d-flex flex-wrap align-items-center justify-content-between gap-2">
                         <div>
@@ -87,11 +85,11 @@
 
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-12 col-lg-4">
+                            <div class="col-12 col-lg-2">
                                 <ul class="list-group" data-slide-list></ul>
                             </div>
 
-                            <div class="col-12 col-lg-8">
+                            <div class="col-12 col-lg-10">
                                 <div class="d-flex align-items-center justify-content-between mb-2">
                                     <strong data-slide-active-label>Slide</strong>
                                     <small class="text-body-secondary" data-slide-save-status>Loading slides...</small>
@@ -109,9 +107,18 @@
                                     >
                                 </div>
 
-                                <div class="mb-3">
-                                    <div id="active-slide-editor" data-monaco-editor data-monaco-target="active-slide-textarea" data-monaco-language="markdown" style="height: 520px;"></div>
-                                    <textarea id="active-slide-textarea" class="d-none" aria-hidden="true"></textarea>
+                                <div class="row g-3 mb-3">
+                                    <div class="col-12 col-xl-6">
+                                        <label for="active-slide-textarea" class="form-label">Slide content</label>
+                                        <div id="active-slide-editor" data-monaco-editor data-monaco-target="active-slide-textarea" data-monaco-language="markdown" style="height: 520px;"></div>
+                                        <textarea id="active-slide-textarea" class="d-none" aria-hidden="true"></textarea>
+                                    </div>
+                                    <div class="col-12 col-xl-6">
+                                        <label for="active-slide-script-textarea" class="form-label">Slide script</label>
+                                        <div id="active-slide-script-editor" data-monaco-editor data-monaco-target="active-slide-script-textarea" data-monaco-language="markdown" style="height: 520px;"></div>
+                                        <textarea id="active-slide-script-textarea" class="d-none" aria-hidden="true"></textarea>
+                                        <small class="text-body-secondary d-block mt-2">This script cue is tied to the currently selected slide.</small>
+                                    </div>
                                 </div>
 
                                 <div class="d-flex flex-wrap gap-2">
@@ -119,21 +126,6 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-12 col-xl-6">
-                <div class="card border-0 shadow-sm mt-4">
-                    <div class="card-header bg-transparent d-flex flex-wrap align-items-center justify-content-between gap-2">
-                        <div>
-                            <h2 class="h5 mb-0">Script</h2>
-                            <small class="text-body-secondary">Teleprompter script in Markdown. Add &lt;x-slidewire::slide&gt; markers to trigger slide changes while scrolling.</small>
-                        </div>
-                        <small class="text-body-secondary" data-script-save-status>Loading script...</small>
-                    </div>
-                    <div class="card-body">
-                        <div id="presentation-script-editor" data-monaco-editor data-monaco-target="presentation-script-textarea" data-monaco-language="markdown" style="height: 360px;"></div>
-                        <textarea id="presentation-script-textarea" class="d-none" aria-hidden="true">{{ (string) ($document->script?->content ?? '') }}</textarea>
                     </div>
                 </div>
             </div>

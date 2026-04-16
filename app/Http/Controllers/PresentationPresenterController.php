@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Slide;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -12,11 +13,10 @@ class PresentationPresenterController extends Controller
     {
         $ownedDocument = $request->user()
             ->documents()
-            ->with(['script'])
+            ->with(['slides'])
             ->findOrFail($document);
 
-        $scriptMarkdown = (string) ($ownedDocument->script?->content ?? '');
-        $sections = $this->scriptSections($scriptMarkdown);
+        $sections = $this->scriptSections($ownedDocument->slides->all());
 
         return view('presentations.presenter', [
             'document' => $ownedDocument,
@@ -26,28 +26,21 @@ class PresentationPresenterController extends Controller
     }
 
     /**
+     * @param  array<int, Slide>  $slides
      * @return array<int, array{index: int, html: string}>
      */
-    private function scriptSections(string $scriptMarkdown): array
+    private function scriptSections(array $slides): array
     {
-        $normalized = str_replace(["\r\n", "\r"], "\n", $scriptMarkdown);
-        $withoutClosingTags = preg_replace('/<\/x-slidewire::slide\s*>/i', '', $normalized);
-        $content = is_string($withoutClosingTags) ? $withoutClosingTags : $normalized;
-
-        $chunks = preg_split('/<x-slidewire::slide(?:\s[^>]*)?\s*\/?\s*>/i', $content) ?: [$content];
-        $sections = [];
-
-        foreach ($chunks as $index => $chunk) {
-            $trimmed = trim((string) $chunk);
-            if ($trimmed === '') {
-                continue;
-            }
-
-            $sections[] = [
-                'index' => $index,
-                'html' => Str::markdown($trimmed),
-            ];
-        }
+        $sections = collect($slides)
+            ->sortBy('sort_order')
+            ->values()
+            ->map(function (Slide $slide, int $index): array {
+                return [
+                    'index' => $index,
+                    'html' => Str::markdown((string) ($slide->script ?? '')),
+                ];
+            })
+            ->all();
 
         if ($sections === []) {
             $sections[] = [

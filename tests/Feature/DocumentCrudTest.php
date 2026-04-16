@@ -104,34 +104,39 @@ class DocumentCrudTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_presenter_view_renders_script_without_raw_slide_marker_tags(): void
+    public function test_presenter_view_renders_slide_scripts_in_sort_order(): void
     {
         $user = User::factory()->create();
         $document = Document::factory()->for($user)->create();
 
-        $scriptContent = implode("\n", [
-            '# First cue',
-            '',
-            'Talk track one',
-            '<x-slidewire::slide>',
-            'Talk track two',
-            '<x-slidewire::slide />',
-            'Talk track three',
+        $document->slides()->delete();
+        $document->slides()->createMany([
+            [
+                'sort_order' => 1,
+                'title' => 'Slide 1',
+                'content' => '# Intro',
+                'script' => 'Talk track one',
+            ],
+            [
+                'sort_order' => 2,
+                'title' => 'Slide 2',
+                'content' => '# Deep dive',
+                'script' => 'Talk track two',
+            ],
+            [
+                'sort_order' => 3,
+                'title' => 'Slide 3',
+                'content' => '# Closing',
+                'script' => 'Talk track three',
+            ],
         ]);
-
-        $document->script()->updateOrCreate(
-            ['document_id' => $document->id],
-            ['content' => $scriptContent]
-        );
 
         $this->actingAs($user)
             ->get(route('presentations.presenter.show', $document->id))
             ->assertOk()
             ->assertSee('Talk track one')
             ->assertSee('Talk track two')
-            ->assertSee('Talk track three')
-            ->assertDontSee('&lt;x-slidewire::slide&gt;', false)
-            ->assertDontSee('<x-slidewire::slide>', false);
+            ->assertSee('Talk track three');
     }
 
     public function test_user_can_only_access_owned_document_routes(): void
@@ -364,7 +369,7 @@ class DocumentCrudTest extends TestCase
         $listResponse
             ->assertOk()
             ->assertJsonStructure([
-                'slides' => [['id', 'sort_order', 'content']],
+                'slides' => [['id', 'sort_order', 'content', 'script']],
             ]);
 
         $firstSlideId = (int) $listResponse->json('slides.0.id');
@@ -372,17 +377,20 @@ class DocumentCrudTest extends TestCase
         $this->actingAs($user)
             ->putJson(route('presentations.slides.update', [$document->id, $firstSlideId]), [
                 'content' => '# Updated first slide',
+                'script' => 'Updated first cue',
             ])
             ->assertOk();
 
         $this->assertDatabaseHas('slides', [
             'id' => $firstSlideId,
             'content' => '# Updated first slide',
+            'script' => 'Updated first cue',
         ]);
 
         $addResponse = $this->actingAs($user)
             ->postJson(route('presentations.slides.store', $document->id), [
                 'content' => '# Added slide',
+                'script' => 'Added slide cue',
             ]);
 
         $addResponse->assertCreated();
@@ -402,8 +410,8 @@ class DocumentCrudTest extends TestCase
         $this->actingAs($user)
             ->postJson(route('presentations.slides.save-all', $document->id), [
                 'slides' => [
-                    ['id' => $secondSlideId, 'content' => '# Reordered first'],
-                    ['id' => $firstSlideId, 'content' => '# Reordered second'],
+                    ['id' => $secondSlideId, 'content' => '# Reordered first', 'script' => 'Reordered first cue'],
+                    ['id' => $firstSlideId, 'content' => '# Reordered second', 'script' => 'Reordered second cue'],
                 ],
             ])
             ->assertOk();
@@ -412,6 +420,7 @@ class DocumentCrudTest extends TestCase
             'id' => $secondSlideId,
             'sort_order' => 1,
             'content' => '# Reordered first',
+            'script' => 'Reordered first cue',
         ]);
 
         $this->actingAs($user)

@@ -26,6 +26,7 @@ class DocumentFactory extends Factory
                     '',
                     fake()->paragraph(2),
                 ]),
+                'script' => '',
             ]);
         });
     }
