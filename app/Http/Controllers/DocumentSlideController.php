@@ -30,13 +30,22 @@ class DocumentSlideController extends Controller
         $ownedDocument = $this->ownedDocument($request, $document);
 
         $attributes = $request->validate([
+            'title' => ['nullable', 'string', 'max:255'],
             'content' => ['nullable', 'string'],
         ]);
 
         $nextOrder = (int) $ownedDocument->slides()->max('sort_order') + 1;
+        $title = $this->normalizeTitle($attributes['title'] ?? null, $nextOrder);
+
+        if ($this->documentHasDuplicateTitle($ownedDocument, $title)) {
+            return response()->json([
+                'message' => 'Slide titles must be unique within a presentation.',
+            ], 422);
+        }
 
         $slide = $ownedDocument->slides()->create([
             'sort_order' => $nextOrder,
+            'title' => $title,
             'content' => $attributes['content'] ?? '',
         ]);
 
@@ -47,7 +56,7 @@ class DocumentSlideController extends Controller
 
     public function update(Request $request, int $document, int $slide): JsonResponse
     {
-        $this->ownedDocument($request, $document);
+        $ownedDocument = $this->ownedDocument($request, $document);
 
         $ownedSlide = Slide::query()
             ->where('document_id', $document)
@@ -55,10 +64,22 @@ class DocumentSlideController extends Controller
             ->firstOrFail();
 
         $attributes = $request->validate([
+            'title' => ['nullable', 'string', 'max:255'],
             'content' => ['required', 'string'],
         ]);
 
-        $ownedSlide->update(['content' => $attributes['content']]);
+        $title = $this->normalizeTitle($attributes['title'] ?? null, (int) $ownedSlide->sort_order);
+
+        if ($this->documentHasDuplicateTitle($ownedDocument, $title, (int) $ownedSlide->getKey())) {
+            return response()->json([
+                'message' => 'Slide titles must be unique within a presentation.',
+            ], 422);
+        }
+
+        $ownedSlide->update([
+            'title' => $title,
+            'content' => $attributes['content'],
+        ]);
 
         return response()->json([
             'slide' => $this->formatSlide($ownedSlide->fresh()),
@@ -132,6 +153,7 @@ class DocumentSlideController extends Controller
         $attributes = $request->validate([
             'slides' => ['required', 'array', 'min:1'],
             'slides.*.id' => ['required', 'integer'],
+            'slides.*.title' => ['nullable', 'string', 'max:255'],
             'slides.*.content' => ['required', 'string'],
         ]);
 
@@ -149,6 +171,18 @@ class DocumentSlideController extends Controller
             ], 422);
         }
 
+        $normalizedTitles = collect($attributes['slides'])
+            ->values()
+            ->map(fn (array $incomingSlide, int $index) => $this->normalizedTitleKey(
+                $this->normalizeTitle($incomingSlide['title'] ?? null, $index + 1)
+            ));
+
+        if ($normalizedTitles->duplicates()->isNotEmpty()) {
+            return response()->json([
+                'message' => 'Slide titles must be unique within a presentation.',
+            ], 422);
+        }
+
         DB::transaction(function () use ($document, $attributes): void {
             $temporaryOffset = 100000;
 
@@ -157,6 +191,7 @@ class DocumentSlideController extends Controller
                     ->where('document_id', $document)
                     ->whereKey((int) $incomingSlide['id'])
                     ->update([
+                        'title' => $this->normalizeTitle($incomingSlide['title'] ?? null, $index + 1),
                         'content' => $incomingSlide['content'],
                         'sort_order' => $temporaryOffset + $index + 1,
                     ]);
@@ -167,6 +202,7 @@ class DocumentSlideController extends Controller
                     ->where('document_id', $document)
                     ->whereKey((int) $incomingSlide['id'])
                     ->update([
+                        'title' => $this->normalizeTitle($incomingSlide['title'] ?? null, $index + 1),
                         'content' => $incomingSlide['content'],
                         'sort_order' => $index + 1,
                     ]);
@@ -224,6 +260,7 @@ class DocumentSlideController extends Controller
             foreach ($slides as $index => $content) {
                 $ownedDocument->slides()->create([
                     'sort_order' => $index + 1,
+                    'title' => 'Slide ' . ($index + 1),
                     'content' => $content,
                 ]);
             }
@@ -263,8 +300,34 @@ class DocumentSlideController extends Controller
         return [
             'id' => (int) $slide->getKey(),
             'sort_order' => (int) $slide->sort_order,
+            'title' => $slide->title,
             'content' => (string) $slide->content,
             'updated_at' => $slide->updated_at?->toIso8601String(),
         ];
+    }
+
+    private function normalizeTitle(mixed $title, int $sortOrder): string
+    {
+        $normalized = is_string($title) ? trim($title) : '';
+
+        return $normalized !== '' ? $normalized : 'Slide ' . $sortOrder;
+    }
+
+    private function documentHasDuplicateTitle(Document $document, string $title, ?int $ignoreSlideId = null): bool
+    {
+        $normalizedTitleKey = $this->normalizedTitleKey($title);
+
+        return $document->slides->contains(function (Slide $slide) use ($normalizedTitleKey, $ignoreSlideId): bool {
+            if ($ignoreSlideId !== null && (int) $slide->getKey() === $ignoreSlideId) {
+                return false;
+            }
+
+            return $this->normalizedTitleKey((string) ($slide->title ?? '')) === $normalizedTitleKey;
+        });
+    }
+
+    private function normalizedTitleKey(string $title): string
+    {
+        return mb_strtolower(trim($title));
     }
 }

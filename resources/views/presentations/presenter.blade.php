@@ -154,7 +154,7 @@
             right: 1.25rem;
             top: calc(1.25rem + (1.65rem * 8));
             height: 2rem;
-            border-bottom: 3px solid #ff0000;
+            border-bottom: 3px solid #ff000047;
             border-radius: 0;
             z-index: 20;
             pointer-events: none;
@@ -225,6 +225,10 @@
                 border-right: 0;
                 border-bottom: 1px solid rgb(148 163 184 / 25%);
             }
+        }
+
+        ol, ul, menu {
+            list-style: disc;
         }
     </style>
 </head>

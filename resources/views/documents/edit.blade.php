@@ -98,6 +98,18 @@
                                 </div>
 
                                 <div class="mb-3">
+                                    {{-- <label for="active-slide-title" class="form-label">Slide title</label> --}}
+                                    <input
+                                        id="active-slide-title"
+                                        type="text"
+                                        class="form-control"
+                                        maxlength="255"
+                                        placeholder="Slide title"
+                                        data-slide-title-input
+                                    >
+                                </div>
+
+                                <div class="mb-3">
                                     <div id="active-slide-editor" data-monaco-editor data-monaco-target="active-slide-textarea" data-monaco-language="markdown" style="height: 520px;"></div>
                                     <textarea id="active-slide-textarea" class="d-none" aria-hidden="true"></textarea>
                                 </div>

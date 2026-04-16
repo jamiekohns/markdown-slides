@@ -421,6 +421,86 @@ class DocumentCrudTest extends TestCase
         $this->assertDatabaseMissing('slides', ['id' => $secondSlideId]);
     }
 
+    public function test_user_cannot_create_slide_with_duplicate_title_in_same_presentation(): void
+    {
+        $user = User::factory()->create();
+        $document = Document::factory()->for($user)->create();
+        $firstSlide = $document->slides()->firstOrFail();
+
+        $firstSlide->update(['title' => 'Introduction']);
+
+        $this->actingAs($user)
+            ->postJson(route('presentations.slides.store', $document->id), [
+                'title' => 'Introduction',
+                'content' => '# Another intro',
+            ])
+            ->assertStatus(422)
+            ->assertJson([
+                'message' => 'Slide titles must be unique within a presentation.',
+            ]);
+    }
+
+    public function test_user_cannot_update_slide_with_duplicate_title_in_same_presentation(): void
+    {
+        $user = User::factory()->create();
+        $document = Document::factory()->for($user)->create();
+        $firstSlide = $document->slides()->firstOrFail();
+
+        $firstSlide->update([
+            'title' => 'Agenda',
+            'content' => '# Agenda',
+        ]);
+
+        $secondSlide = $document->slides()->create([
+            'sort_order' => 2,
+            'title' => 'Summary',
+            'content' => '# Summary',
+        ]);
+
+        $this->actingAs($user)
+            ->putJson(route('presentations.slides.update', [$document->id, $secondSlide->id]), [
+                'title' => 'Agenda',
+                'content' => '# Updated summary',
+            ])
+            ->assertStatus(422)
+            ->assertJson([
+                'message' => 'Slide titles must be unique within a presentation.',
+            ]);
+    }
+
+    public function test_user_cannot_save_all_slides_with_duplicate_titles_in_same_presentation(): void
+    {
+        $user = User::factory()->create();
+        $document = Document::factory()->for($user)->create();
+        $firstSlide = $document->slides()->firstOrFail();
+
+        $secondSlide = $document->slides()->create([
+            'sort_order' => 2,
+            'title' => 'Closing',
+            'content' => '# Closing',
+        ]);
+
+        $this->actingAs($user)
+            ->postJson(route('presentations.slides.save-all', $document->id), [
+                'slides' => [
+                    [
+                        'id' => $firstSlide->id,
+                        'title' => 'Wrap Up',
+                        'content' => '# First',
+                    ],
+                    [
+                        'id' => $secondSlide->id,
+                        'title' => 'wrap up',
+                        'content' => '# Second',
+                    ],
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJson([
+                'message' => 'Slide titles must be unique within a presentation.',
+            ]);
+    }
+
     public function test_user_cannot_manage_foreign_document_slides(): void
     {
         $owner = User::factory()->create();

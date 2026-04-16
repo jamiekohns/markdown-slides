@@ -61,6 +61,7 @@ class DocumentController extends Controller
 
         $document->slides()->create([
             'sort_order' => 1,
+            'title' => 'Slide 1',
             'content' => "# New slide\n\nStart writing your presentation content.",
         ]);
 

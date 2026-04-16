@@ -142,6 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		const importInput = slideEditorRoot.querySelector('[data-slide-import-input]');
 		const statusEl = slideEditorRoot.querySelector('[data-slide-save-status]');
 		const activeLabel = slideEditorRoot.querySelector('[data-slide-active-label]');
+		const titleInput = slideEditorRoot.querySelector('[data-slide-title-input]');
 		const activeSlideEditor = editorInstances.get('active-slide-editor');
 		const csrf = slideEditorRoot.dataset.csrfToken;
 		const slidesIndexUrl = slideEditorRoot.dataset.slidesIndexUrl;
@@ -162,6 +163,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 			&& importInput
 			&& statusEl
 			&& activeLabel
+			&& titleInput
 			&& csrf
 			&& slidesIndexUrl
 			&& slidesStoreUrl
@@ -183,6 +185,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 			};
 
 			const findSlide = (slideId) => state.slides.find((slide) => slide.id === slideId);
+
+			const slideDisplayTitle = (slide, index) => {
+				const trimmedTitle = (slide.title || '').trim();
+
+				return trimmedTitle !== '' ? trimmedTitle : `Slide ${index + 1}`;
+			};
+
+			const slideHeaderText = (slide) => {
+				const trimmedTitle = (slide.title || '').trim();
+
+				return trimmedTitle !== ''
+					? `Slide ${slide.sort_order}: ${trimmedTitle}`
+					: `Slide ${slide.sort_order}`;
+			};
 
 			const request = async (url, options = {}) => {
 				const isFormData = options.body instanceof FormData;
@@ -225,7 +241,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 					button.type = 'button';
 					button.className = 'btn btn-sm text-start flex-grow-1';
 					button.dataset.slideSelect = String(slide.id);
-					button.textContent = `Slide ${index + 1}`;
+					button.textContent = slideDisplayTitle(slide, index);
 
 					if (slide.id === state.activeSlideId) {
 						button.classList.add('btn-primary');
@@ -253,8 +269,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 				state.activeSlideId = slide.id;
 				state.isProgrammaticEdit = true;
 				activeSlideEditor.setValue(slide.content || '');
+				titleInput.value = slide.title || '';
+				titleInput.disabled = false;
 				state.isProgrammaticEdit = false;
-				activeLabel.textContent = `Slide ${slide.sort_order}`;
+				activeLabel.textContent = slideHeaderText(slide);
 				renderSlides();
 				setStatus('Saved');
 			};
@@ -277,6 +295,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 				if (state.slides.length === 0) {
 					setStatus('No slides available.');
 					activeLabel.textContent = 'No slide selected';
+					titleInput.value = '';
+					titleInput.disabled = true;
 					activeSlideEditor.setValue('');
 					renderSlides();
 					return;
@@ -300,11 +320,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 				try {
 					const payload = await request(updateUrlTemplate.replace('__SLIDE_ID__', String(slide.id)), {
 						method: 'PUT',
-						body: JSON.stringify({ content: slide.content }),
+						body: JSON.stringify({
+							title: slide.title || '',
+							content: slide.content,
+						}),
 					});
 
 					const saved = payload.slide;
+					slide.title = saved.title;
 					slide.updated_at = saved.updated_at;
+					activeLabel.textContent = slideHeaderText(slide);
+					renderSlides();
 					setStatus(`Saved slide ${slide.sort_order}`);
 				} catch {
 					setStatus(`Save failed on slide ${slide.sort_order}. Retrying on next change.`);
@@ -345,9 +371,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 				setStatus('Adding slide...');
 
 				try {
+					const nextSlideNumber = state.slides.length + 1;
 					const payload = await request(slidesStoreUrl, {
 						method: 'POST',
-						body: JSON.stringify({ content: '# New slide\n\nAdd content here.' }),
+						body: JSON.stringify({
+							title: `Slide ${nextSlideNumber}`,
+							content: '# New slide\n\nAdd content here.',
+						}),
 					});
 
 					state.slides.push(payload.slide);
@@ -391,7 +421,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 						setActiveSlide(state.slides[0].id);
 					} else {
 						state.activeSlideId = null;
+						titleInput.value = '';
+						titleInput.disabled = true;
 						activeSlideEditor.setValue('');
+						activeLabel.textContent = 'No slide selected';
 						renderSlides();
 					}
 
@@ -410,6 +443,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 						body: JSON.stringify({
 							slides: state.slides.map((slide) => ({
 								id: slide.id,
+								title: slide.title || '',
 								content: slide.content,
 							})),
 						}),
@@ -457,7 +491,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 						setActiveSlide(state.slides[0].id);
 					} else {
 						state.activeSlideId = null;
+						titleInput.value = '';
+						titleInput.disabled = true;
 						activeSlideEditor.setValue('');
+						activeLabel.textContent = 'No slide selected';
 						renderSlides();
 						setStatus('Import completed with no slides.');
 					}
@@ -484,6 +521,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 				}
 
 				setActiveSlide(slideId);
+			});
+
+			titleInput.addEventListener('input', () => {
+				if (state.activeSlideId === null) {
+					return;
+				}
+
+				const activeSlide = findSlide(state.activeSlideId);
+				if (!activeSlide) {
+					return;
+				}
+
+				activeSlide.title = titleInput.value;
+				activeLabel.textContent = slideHeaderText(activeSlide);
+				renderSlides();
+				queueAutosave(activeSlide.id);
 			});
 
 			let draggedSlideId = null;
@@ -544,7 +597,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 					if (state.activeSlideId !== null) {
 						const updatedActiveSlide = findSlide(state.activeSlideId);
 						if (updatedActiveSlide) {
-							activeLabel.textContent = `Slide ${updatedActiveSlide.sort_order}`;
+							activeLabel.textContent = slideHeaderText(updatedActiveSlide);
 						}
 					}
 
